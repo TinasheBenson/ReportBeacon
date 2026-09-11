@@ -10,7 +10,7 @@ import {
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import {
-  metricsFor, pacing, health, PLATFORMS, RANGES, type Account, type PlatformId,
+  metricsFor, pacing, health, serviceHealthFor, PLATFORMS, RANGES, type Account, type PlatformId, type Health,
 } from '@/lib/data'
 import { money, money2, moneyK, num, compact } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
@@ -95,6 +95,10 @@ export default function AccountDetail() {
   )
 }
 
+function healthColor(h: Health): string {
+  return h === 'good' ? 'var(--st-good)' : h === 'watch' ? 'var(--st-warn)' : 'var(--st-critical)'
+}
+
 function NotFound({ onBack, title, icon }: { onBack: () => void; title: string; icon?: boolean }) {
   return (
     <div className="text-center py-20">
@@ -139,16 +143,19 @@ function Overview({ account, ownerView, range }: { account: Account; ownerView: 
           </div>
         </ExpandableCard>
 
-        <ExpandableCard title="Connected sources" subtitle="Five platforms in one view" icon={<Cable size={17} />}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 pt-3">
-            {PLATFORMS.map((pl) => {
-              const s = account.sources[pl.id]
-              const color = s === 'live' ? 'var(--st-good)' : s === 'syncing' ? 'var(--st-warn)' : 'var(--st-critical)'
+        <ExpandableCard title="Service health" subtitle="Each platform's status, headline metric and a one-line read" icon={<Cable size={17} />} defaultOpen>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-3">
+            {serviceHealthFor(account).map((s) => {
+              const color = healthColor(s.status)
               return (
-                <div key={pl.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3.5 py-3 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between"><span className="font-semibold text-[12.5px]">{pl.short}</span><span className="w-[9px] h-[9px] rounded-full" style={{ background: color }} /></div>
-                  <span className="text-[11px] text-[var(--muted)] leading-tight">{pl.name}</span>
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color }}>{s === 'live' ? 'Live' : s === 'syncing' ? 'Syncing' : 'Reconnect'}</span>
+                <div key={s.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[10px] px-3.5 py-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-[9px] h-[9px] rounded-full flex-none" style={{ background: color }} />
+                    <span className="font-semibold text-[12.5px] flex-1">{s.name}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color }}>{s.label}</span>
+                  </div>
+                  <span className="mono text-[15px] font-semibold leading-none mt-1">{s.keyMetric}</span>
+                  <span className="text-[11px] text-[var(--muted)] leading-tight">{s.summary}</span>
                 </div>
               )
             })}

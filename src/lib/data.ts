@@ -7,6 +7,7 @@
  * alerts are derived from the same numbers, so the "needs attention" list and
  * the health flags always agree with what the tables show.
  */
+import { money, money2, num } from './format'
 
 // ---------------------------------------------------------------------------
 // Roles (internal only)
@@ -409,6 +410,70 @@ export function health(a: Account): Health {
   if (m.cplDelta > 5 || p.pct > 102 || m.leadsDelta < -3 || anyDown || Object.values(a.sources).includes('syncing'))
     return 'watch'
   return 'good'
+}
+
+// ---------------------------------------------------------------------------
+// Per-service health — a health status, one-line summary and headline metric
+// for each connected platform, so the account view reads service by service.
+// ---------------------------------------------------------------------------
+
+export interface ServiceHealth {
+  id: PlatformId
+  name: string
+  short: string
+  status: Health
+  connection: SourceStatus
+  label: string
+  summary: string
+  keyMetric: string
+}
+
+export function serviceHealthFor(a: Account): ServiceHealth[] {
+  return PLATFORMS.map((p) => {
+    const src = a.sources[p.id]
+    // Connection issues dominate; otherwise the service's own signal sets health.
+    let status: Health = src === 'attention' ? 'risk' : src === 'syncing' ? 'watch' : 'good'
+    let summary = ''
+    let keyMetric = ''
+    switch (p.id) {
+      case 'lsa': {
+        const s = a.lsa
+        if (status === 'good' && s.responseMins > 10) status = 'risk'
+        else if (status === 'good' && s.responseMins > 5) status = 'watch'
+        keyMetric = `${money2(s.cpl)} / lead`
+        summary = `${num(s.leads)} leads · ${s.responseMins.toFixed(1)} min response`
+        break
+      }
+      case 'googleAds': {
+        const s = a.googleAds
+        keyMetric = `${money2(s.costPerConv)} / conv`
+        summary = `${num(s.conversions)} conversions · ${money(s.spend)} spend`
+        break
+      }
+      case 'gbp': {
+        const s = a.gbp
+        if (status === 'good' && s.rating < 4) status = 'watch'
+        keyMetric = `${s.rating.toFixed(1)} ★`
+        summary = `${num(s.reviews)} reviews · +${s.reviewDelta} this period`
+        break
+      }
+      case 'meta': {
+        const s = a.meta
+        keyMetric = `${money2(s.costPerResult)} / result`
+        summary = `${num(s.results)} results · ${money(s.spend)} spend`
+        break
+      }
+      case 'semrush': {
+        const s = a.semrush
+        if (status === 'good' && s.visibilityDelta < 0) status = 'watch'
+        keyMetric = `${s.visibility.toFixed(1)}% vis`
+        summary = `${num(s.keywords)} keywords · ${s.visibilityDelta >= 0 ? '+' : ''}${s.visibilityDelta.toFixed(1)}%`
+        break
+      }
+    }
+    const label = src === 'attention' ? 'Reconnect' : src === 'syncing' ? 'Syncing' : HEALTH_LABEL[status]
+    return { id: p.id, name: p.name, short: p.short, status, connection: src, label, summary, keyMetric }
+  })
 }
 
 export type Severity = 'serious' | 'warning' | 'info'
