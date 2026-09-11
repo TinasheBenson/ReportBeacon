@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
-import { RANGES, allAlerts, portfolioTotals } from '@/lib/data'
+import { RANGES, portfolioTotals } from '@/lib/data'
 import { money, money2, moneyK, num } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
 import { Card, Stat, Segmented, Button, SectionTitle, SeverityDot, Chip, KpiSkeleton, TableSkeleton } from '@/components/ui/kit'
@@ -12,12 +12,12 @@ import AccountsTable from '@/components/AccountsTable'
 
 export default function Portfolio() {
   const { range, setRange } = useApp()
-  const { me, isAdmin, accountsForSeat, members } = useWorkspace()
+  const { me, isAdmin, accountsForSeat, members, openAlerts } = useWorkspace()
   const navigate = useNavigate()
   const isOwner = isAdmin
   const accounts = me ? accountsForSeat(me) : []
   const t = portfolioTotals(range, accounts)
-  const alerts = allAlerts(accounts)
+  const alerts = openAlerts(accounts)
   const loading = useLoading([me?.id, range], 420)
 
   const managerCount = members.filter((mm) => mm.role === 'manager').length
@@ -42,7 +42,7 @@ export default function Portfolio() {
           <Stat label="Managed spend · 30d" value={moneyK(t.managed)} delta={t.spendDelta} note="vs prior" />
           <Stat label="Blended cost / lead" value={money2(t.cpl)} delta={t.cplDelta} lowerIsBetter note="lower is better" />
           <Stat label="Leads" value={num(t.leads)} delta={t.leadsDelta} note={isOwner ? 'across roster' : 'your book'} />
-          <Stat label="Open alerts" value={t.openAlerts} note={`${t.atRisk} at risk · ${t.watch} watch`} />
+          <Stat label="Open alerts" value={alerts.length} note={`${t.atRisk} at risk · ${t.watch} watch`} />
         </div>
       </Reveal>
 

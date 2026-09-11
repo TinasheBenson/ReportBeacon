@@ -12,6 +12,12 @@ import {
   SEATS, CATALOG, ACCOUNTS, PLATFORMS,
   type Account, type Seat, type PlatformId, type RoleId,
 } from '@/lib/data'
+import {
+  defaultRules, evaluateAll, type AlertRule, type AlertInstance, type AlertStatus,
+} from '@/lib/alerts'
+
+/** An evaluated alert with its persisted lifecycle status applied. */
+export type LiveAlert = AlertInstance & { status: AlertStatus }
 
 export type Member = Seat
 
@@ -27,6 +33,8 @@ interface Persisted {
   connections: Record<PlatformId, boolean>
   brand: Brand
   schedules: Record<string, Schedule> // clientId -> schedule
+  alertRules: AlertRule[]
+  alertStatus: Record<string, { status: AlertStatus; at: string }> // alertId -> lifecycle
 }
 
 // Demo opens under a neutral placeholder brand so a prospect reads it as
@@ -54,6 +62,8 @@ function seed(): Persisted {
     connections,
     brand: DEFAULT_BRAND,
     schedules: {},
+    alertRules: defaultRules(),
+    alertStatus: {},
   }
 }
 
@@ -71,6 +81,8 @@ function load(): Persisted {
       connections: { ...base.connections, ...(p.connections ?? {}) },
       brand: { ...base.brand, ...(p.brand ?? {}) },
       schedules: p.schedules ?? base.schedules,
+      alertRules: p.alertRules ?? base.alertRules,
+      alertStatus: p.alertStatus ?? base.alertStatus,
     }
   } catch {
     return seed()
@@ -109,6 +121,13 @@ interface WorkspaceApi extends Persisted {
   brandMonogram: string
   setSchedule: (clientId: string, s: Schedule) => void
   scheduledFor: (m: Member) => { client: Account; schedule: Schedule; nextSend: Date }[]
+  // alert rules + lifecycle
+  alerts: (accounts: Account[]) => LiveAlert[]
+  openAlerts: (accounts: Account[]) => LiveAlert[]
+  setAlertStatus: (id: string, status: AlertStatus) => void
+  addAlertRule: (rule: AlertRule) => void
+  updateAlertRule: (id: string, patch: Partial<AlertRule>) => void
+  deleteAlertRule: (id: string) => void
   resetWorkspace: () => void
 }
 
@@ -138,6 +157,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       m.role === 'owner' ? clients : clients.filter((c) => state.ownerById[c.id] === m.id)
     const canSee = (m: Member, clientId: string) =>
       m.role === 'owner' || state.ownerById[clientId] === m.id
+
+    const applyStatus = (list: AlertInstance[]): LiveAlert[] =>
+      list.map((al) => ({ ...al, status: state.alertStatus[al.id]?.status ?? 'open' }))
 
     return {
       ...state,
@@ -187,6 +209,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           .map((r) => ({ ...r, nextSend: nextSend(r.schedule.freq) }))
           .sort((a, b) => a.nextSend.getTime() - b.nextSend.getTime())
       },
+
+      alerts: (accounts) => {
+        const list = applyStatus(evaluateAll(accounts, state.alertRules))
+        // Keep severity order (from evaluateAll), sink resolved to the bottom.
+        return [...list].sort((a, b) => (a.status === 'resolved' ? 1 : 0) - (b.status === 'resolved' ? 1 : 0))
+      },
+      openAlerts: (accounts) =>
+        applyStatus(evaluateAll(accounts, state.alertRules)).filter((a) => a.status !== 'resolved'),
+      setAlertStatus: (id, status) =>
+        patch({ alertStatus: { ...state.alertStatus, [id]: { status, at: new Date().toISOString() } } }),
+      addAlertRule: (rule) => patch({ alertRules: [...state.alertRules, rule] }),
+      updateAlertRule: (id, p) => patch({ alertRules: state.alertRules.map((r) => (r.id === id ? { ...r, ...p } : r)) }),
+      deleteAlertRule: (id) => patch({ alertRules: state.alertRules.filter((r) => r.id !== id) }),
+
       resetWorkspace: () => save(seed()),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

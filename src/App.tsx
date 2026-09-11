@@ -16,6 +16,7 @@ import Settings from '@/pages/Settings'
 import Team from '@/pages/Team'
 import Branding from '@/pages/Branding'
 import Automations from '@/pages/Automations'
+import AlertRules from '@/pages/AlertRules'
 
 export default function App() {
   const { theme, seatId } = useApp()
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="accounts/:id" element={<AccountDetail />} />
             <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="alerts" element={<Alerts />} />
+            <Route path="alert-rules" element={<AlertRules />} />
             <Route path="reports" element={<Reports />} />
             <Route path="automations" element={<Automations />} />
             <Route path="integrations" element={<Integrations />} />

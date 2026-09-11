@@ -3,11 +3,10 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import {
   LayoutGrid, Users, Bell, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, CalendarClock,
-  PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, LogOut,
+  SlidersHorizontal, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, LogOut,
 } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
-import { allAlerts } from '@/lib/data'
 import { IconButton } from '@/components/ui/kit'
 
 const NAV = [
@@ -23,6 +22,7 @@ const TITLES: Record<string, string> = {
   '/app': 'Portfolio', '/app/accounts': 'Accounts', '/app/recommendations': 'Recommendations', '/app/alerts': 'Alerts',
   '/app/reports': 'Reports', '/app/automations': 'Automations', '/app/integrations': 'Integrations',
   '/app/settings': 'Settings', '/app/team': 'Team & access', '/app/branding': 'Branding',
+  '/app/alert-rules': 'Alert rules',
 }
 function pageTitle(path: string): string {
   if (path.startsWith('/app/accounts/')) return 'Account'
@@ -31,15 +31,19 @@ function pageTitle(path: string): string {
 
 export default function Shell() {
   const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, signOut } = useApp()
-  const { me, isAdmin, accountsForSeat, brand } = useWorkspace()
+  const { me, isAdmin, accountsForSeat, brand, openAlerts } = useWorkspace()
   const location = useLocation()
   const navigate = useNavigate()
   const scoped = me ? accountsForSeat(me) : []
-  const alertCount = allAlerts(scoped).length
+  const alertCount = openAlerts(scoped).length
   const seat = me
 
   const NAV_2 = [
-    ...(isAdmin ? [{ to: '/app/team', label: 'Team & access', icon: UsersRound }, { to: '/app/branding', label: 'Branding', icon: Palette }] : []),
+    ...(isAdmin ? [
+      { to: '/app/alert-rules', label: 'Alert rules', icon: SlidersHorizontal },
+      { to: '/app/team', label: 'Team & access', icon: UsersRound },
+      { to: '/app/branding', label: 'Branding', icon: Palette },
+    ] : []),
     { to: '/app/integrations', label: 'Integrations', icon: Cable },
     { to: '/app/settings', label: 'Settings', icon: SettingsIcon },
   ]

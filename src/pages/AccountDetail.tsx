@@ -10,7 +10,7 @@ import {
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import {
-  metricsFor, pacing, health, alertsFor, PLATFORMS, RANGES, type Account, type PlatformId,
+  metricsFor, pacing, health, PLATFORMS, RANGES, type Account, type PlatformId,
 } from '@/lib/data'
 import { money, money2, moneyK, num, compact } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
@@ -25,7 +25,7 @@ const TOOLTIP = { background: 'var(--surface)', border: '1px solid var(--line)',
 export default function AccountDetail() {
   const { id = '' } = useParams()
   const { range, setRange } = useApp()
-  const { me, isAdmin, getClient, canSee } = useWorkspace()
+  const { me, isAdmin, getClient, canSee, openAlerts } = useWorkspace()
   const account = getClient(id)
   const navigate = useNavigate()
   const [tab, setTab] = useState<'overview' | PlatformId>('overview')
@@ -44,7 +44,7 @@ export default function AccountDetail() {
     )
   }
 
-  const alerts = alertsFor(account)
+  const alerts = openAlerts([account])
   const ownerView = isAdmin
 
   return (
