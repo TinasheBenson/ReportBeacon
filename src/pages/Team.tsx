@@ -69,20 +69,20 @@ export default function Team() {
         <SectionTitle>Team</SectionTitle>
         <Card className="divide-y divide-[var(--line)]">
           {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+            <div key={m.id} className="flex flex-wrap items-center gap-2.5 px-4 py-3">
               <span className="w-9 h-9 rounded-full grid place-items-center flex-none text-[12px] font-bold text-white" style={{ background: m.role === 'owner' ? 'var(--ink)' : m.role === 'viewer' ? 'var(--muted)' : 'var(--accent)' }}>{m.initials}</span>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-[150px]">
                 <div className="text-[13.5px] font-semibold">{m.name}</div>
                 <div className="text-[11.5px] text-[var(--muted)]">{subtitle(m.role, m.id)}</div>
               </div>
               {m.role !== 'owner' && (
-                <>
+                <div className="flex items-center gap-2 ml-auto">
                   <select value={m.role} onChange={(e) => { setMemberRole(m.id, e.target.value as RoleId); toast.success(`${m.name} is now a ${ROLE_LABEL[e.target.value as RoleId]}`) }}
                     className={`${input} py-1.5 text-[12.5px]`}>
                     {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                   </select>
                   <Button onClick={() => { removeMember(m.id); toast.success(`${m.name} removed`, { description: 'Any clients moved to Unassigned' }) }} className="text-[12px] py-1.5 px-2.5"><Trash2 size={13} /> Remove</Button>
-                </>
+                </div>
               )}
             </div>
           ))}
