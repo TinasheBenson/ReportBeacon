@@ -14,7 +14,7 @@ const SEV_LABEL: Record<Severity, string> = { serious: 'At risk', warning: 'Watc
 const chipTone = (s: Severity): 'serious' | 'warn' | 'neutral' => (s === 'serious' ? 'serious' : s === 'warning' ? 'warn' : 'neutral')
 
 export default function Alerts() {
-  const { me, accountsForSeat, alerts, setAlertStatus } = useWorkspace()
+  const { me, accountsForSeat, alerts, setAlertStatus, canWrite } = useWorkspace()
   const scope = me ? accountsForSeat(me) : []
   const all = alerts(scope)
   const [view, setView] = useState<'open' | 'resolved'>('open')
@@ -53,7 +53,7 @@ export default function Alerts() {
                   <span className="text-[12px] text-[var(--muted)]">{items.length}</span>
                 </div>
                 <Card className="divide-y divide-[var(--line)]">
-                  {items.map((al) => <AlertRow key={al.id} al={al} onAct={act} />)}
+                  {items.map((al) => <AlertRow key={al.id} al={al} onAct={act} canWrite={canWrite} />)}
                 </Card>
               </section>
             )
@@ -62,7 +62,7 @@ export default function Alerts() {
         </>
       ) : (
         <Card className="divide-y divide-[var(--line)]">
-          {resolved.map((al) => <AlertRow key={al.id} al={al} onAct={act} />)}
+          {resolved.map((al) => <AlertRow key={al.id} al={al} onAct={act} canWrite={canWrite} />)}
           {resolved.length === 0 && <div className="p-10 text-center text-[13px] text-[var(--muted)]">Nothing resolved yet.</div>}
         </Card>
       )}
@@ -70,7 +70,7 @@ export default function Alerts() {
   )
 }
 
-function AlertRow({ al, onAct }: { al: LiveAlert; onAct: (a: LiveAlert, s: 'acknowledged' | 'resolved' | 'open') => void }) {
+function AlertRow({ al, onAct, canWrite }: { al: LiveAlert; onAct: (a: LiveAlert, s: 'acknowledged' | 'resolved' | 'open') => void; canWrite: boolean }) {
   const resolved = al.status === 'resolved'
   return (
     <div className={`flex items-center gap-3 px-4 py-3.5 ${resolved ? 'opacity-70' : ''}`}>
@@ -82,15 +82,15 @@ function AlertRow({ al, onAct }: { al: LiveAlert; onAct: (a: LiveAlert, s: 'ackn
       {al.status === 'acknowledged' && <Chip tone="neutral">Acknowledged</Chip>}
       <Chip tone={chipTone(al.severity)}>{al.tag}</Chip>
       <div className="flex items-center gap-1.5 flex-none">
-        {al.status === 'open' && (
+        {canWrite && al.status === 'open' && (
           <button onClick={() => onAct(al, 'acknowledged')} title="Acknowledge" aria-label="Acknowledge"
             className="w-7 h-7 grid place-items-center rounded-[7px] text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors"><Check size={15} /></button>
         )}
-        {!resolved ? (
+        {canWrite && (!resolved ? (
           <Button className="py-1 px-2 text-[11px]" onClick={() => onAct(al, 'resolved')}><CheckCheck size={13} /> Resolve</Button>
         ) : (
           <Button className="py-1 px-2 text-[11px]" onClick={() => onAct(al, 'open')}><RotateCcw size={13} /> Reopen</Button>
-        )}
+        ))}
         <Link to={`/app/accounts/${al.accountId}`} className="w-7 h-7 grid place-items-center text-[var(--muted)] hover:text-[var(--ink)]" aria-label="Open account"><ArrowRight size={15} /></Link>
       </div>
     </div>

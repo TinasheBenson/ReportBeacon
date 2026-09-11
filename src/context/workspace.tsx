@@ -9,21 +9,24 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useApp } from '@/context/app'
 import {
-  SEATS, CATALOG, ACCOUNTS, PLATFORMS,
+  SEATS, ACCOUNTS, PLATFORMS,
   type Account, type Seat, type PlatformId, type RoleId,
 } from '@/lib/data'
-import {
-  defaultRules, evaluateAll, type AlertRule, type AlertInstance, type AlertStatus,
-} from '@/lib/alerts'
+import { defaultRules, type AlertRule, type AlertStatus } from '@/lib/alerts'
+import { api as dataApi, type LiveAlert } from '@/lib/api'
 
-/** An evaluated alert with its persisted lifecycle status applied. */
-export type LiveAlert = AlertInstance & { status: AlertStatus }
+export type { LiveAlert }
 
 export type Member = Seat
 
 export interface Brand { agencyName: string; accent: string; logo: string | null }
 export type Freq = 'off' | 'weekly' | 'monthly'
 export interface Schedule { freq: Freq; recipient: string }
+export interface Invitation { id: string; email: string; role: RoleId; token: string; createdAt: string; status: 'pending' | 'accepted' }
+
+function titleFor(role: RoleId): string {
+  return role === 'viewer' ? 'Viewer · read-only' : 'Account manager'
+}
 
 interface Persisted {
   members: Member[]
@@ -35,6 +38,7 @@ interface Persisted {
   schedules: Record<string, Schedule> // clientId -> schedule
   alertRules: AlertRule[]
   alertStatus: Record<string, { status: AlertStatus; at: string }> // alertId -> lifecycle
+  invitations: Invitation[]
 }
 
 // Demo opens under a neutral placeholder brand so a prospect reads it as
@@ -64,6 +68,7 @@ function seed(): Persisted {
     schedules: {},
     alertRules: defaultRules(),
     alertStatus: {},
+    invitations: [],
   }
 }
 
@@ -83,6 +88,7 @@ function load(): Persisted {
       schedules: p.schedules ?? base.schedules,
       alertRules: p.alertRules ?? base.alertRules,
       alertStatus: p.alertStatus ?? base.alertStatus,
+      invitations: p.invitations ?? base.invitations,
     }
   } catch {
     return seed()
@@ -98,6 +104,7 @@ interface WorkspaceApi extends Persisted {
   me: Member | null
   role: RoleId
   isAdmin: boolean
+  canWrite: boolean // false for viewers (read-only)
   // reads
   clients: Account[] // live roster (imported, not archived)
   getClient: (id: string) => Account | undefined
@@ -109,8 +116,14 @@ interface WorkspaceApi extends Persisted {
   importable: Account[] // discoverable, not yet imported
   clientCount: (memberId: string) => number
   // mutations
-  addMember: (name: string) => string
+  addMember: (name: string, role?: RoleId) => string
   removeMember: (id: string) => void
+  setMemberRole: (id: string, role: RoleId) => void
+  // invitations
+  invitations: Invitation[]
+  invite: (email: string, role: RoleId) => Invitation
+  acceptInvite: (token: string, name: string) => string | null
+  revokeInvite: (id: string) => void
   assignClient: (clientId: string, memberId: string) => void
   importClient: (clientId: string, ownerId?: string) => void
   archiveClient: (clientId: string) => void
@@ -144,39 +157,37 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const patch = (p: Partial<Persisted>) => save({ ...state, ...p })
 
   const api = useMemo<WorkspaceApi>(() => {
-    const isLive = (a: Account) => state.importedIds.includes(a.id) && !state.archivedIds.includes(a.id)
-    const clients = CATALOG.filter(isLive)
+    const clients = dataApi.listClients(state)
     const me = state.members.find((m) => m.id === seatId) ?? null
     const role: RoleId = me?.role ?? 'manager'
+    // Owners and viewers see the whole agency; managers see only their book.
+    // Viewers see everything but change nothing (canWrite === false).
+    const seesAll = (m: Member) => m.role === 'owner' || m.role === 'viewer'
 
     const managerFor = (clientId: string) => {
       const owner = state.ownerById[clientId]
       return owner ? state.members.find((m) => m.id === owner) : undefined
     }
-    const accountsForSeat = (m: Member) =>
-      m.role === 'owner' ? clients : clients.filter((c) => state.ownerById[c.id] === m.id)
+    const accountsForSeat = (m: Member) => dataApi.scopedClients(state, m)
     const canSee = (m: Member, clientId: string) =>
-      m.role === 'owner' || state.ownerById[clientId] === m.id
-
-    const applyStatus = (list: AlertInstance[]): LiveAlert[] =>
-      list.map((al) => ({ ...al, status: state.alertStatus[al.id]?.status ?? 'open' }))
+      seesAll(m) || state.ownerById[clientId] === m.id
 
     return {
       ...state,
-      me, role, isAdmin: role === 'owner',
+      me, role, isAdmin: role === 'owner', canWrite: role !== 'viewer',
       clients,
-      getClient: (id) => CATALOG.find((a) => a.id === id),
+      getClient: (id) => dataApi.clientById(id),
       managerFor,
       accountsForSeat,
       canSee,
       unassigned: clients.filter((c) => !state.ownerById[c.id]),
-      archivedClients: CATALOG.filter((a) => state.archivedIds.includes(a.id)),
-      importable: CATALOG.filter((a) => !state.importedIds.includes(a.id) && !state.archivedIds.includes(a.id)),
+      archivedClients: dataApi.archivedClients(state),
+      importable: dataApi.importableClients(state),
       clientCount: (memberId) => clients.filter((c) => state.ownerById[c.id] === memberId).length,
 
-      addMember: (name) => {
+      addMember: (name, memberRole = 'manager') => {
         const id = 'm-' + Date.now().toString(36)
-        const member: Member = { id, name, initials: initials(name), role: 'manager', title: 'Account manager', accountIds: [] }
+        const member: Member = { id, name, initials: initials(name), role: memberRole, title: titleFor(memberRole), accountIds: [] }
         save({ ...state, members: [...state.members, member] })
         return id
       },
@@ -185,6 +196,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         for (const k of Object.keys(ownerById)) if (ownerById[k] === id) ownerById[k] = ''
         save({ ...state, members: state.members.filter((m) => m.id !== id), ownerById })
       },
+      setMemberRole: (id, memberRole) =>
+        patch({ members: state.members.map((m) => (m.id === id ? { ...m, role: memberRole, title: titleFor(memberRole) } : m)) }),
+
+      invite: (email, inviteRole) => {
+        const inv: Invitation = {
+          id: 'inv-' + Date.now().toString(36), email: email.trim(), role: inviteRole,
+          token: Math.random().toString(36).slice(2, 10), createdAt: new Date().toISOString(), status: 'pending',
+        }
+        save({ ...state, invitations: [...state.invitations, inv] })
+        return inv
+      },
+      acceptInvite: (token, name) => {
+        const inv = state.invitations.find((i) => i.token === token && i.status === 'pending')
+        if (!inv) return null
+        const id = 'm-' + Date.now().toString(36)
+        const nm = name.trim() || inv.email
+        const member: Member = { id, name: nm, initials: initials(nm), role: inv.role, title: titleFor(inv.role), accountIds: [] }
+        save({
+          ...state,
+          members: [...state.members, member],
+          invitations: state.invitations.map((i) => (i.id === inv.id ? { ...i, status: 'accepted' } : i)),
+        })
+        return id
+      },
+      revokeInvite: (id) => patch({ invitations: state.invitations.filter((i) => i.id !== id) }),
       assignClient: (clientId, memberId) => patch({ ownerById: { ...state.ownerById, [clientId]: memberId } }),
       importClient: (clientId, ownerId = '') =>
         save({
@@ -202,7 +238,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       brandMonogram: initials(state.brand.agencyName),
       setSchedule: (clientId, s) => patch({ schedules: { ...state.schedules, [clientId]: s } }),
       scheduledFor: (m) => {
-        const scope = m.role === 'owner' ? clients : clients.filter((c) => state.ownerById[c.id] === m.id)
+        const scope = seesAll(m) ? clients : clients.filter((c) => state.ownerById[c.id] === m.id)
         return scope
           .map((client) => ({ client, schedule: state.schedules[client.id] }))
           .filter((r): r is { client: Account; schedule: Schedule } => !!r.schedule && r.schedule.freq !== 'off')
@@ -211,12 +247,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       },
 
       alerts: (accounts) => {
-        const list = applyStatus(evaluateAll(accounts, state.alertRules))
-        // Keep severity order (from evaluateAll), sink resolved to the bottom.
+        const list = dataApi.evaluateAlerts(state, accounts)
+        // Keep severity order (from the engine), sink resolved to the bottom.
         return [...list].sort((a, b) => (a.status === 'resolved' ? 1 : 0) - (b.status === 'resolved' ? 1 : 0))
       },
-      openAlerts: (accounts) =>
-        applyStatus(evaluateAll(accounts, state.alertRules)).filter((a) => a.status !== 'resolved'),
+      openAlerts: (accounts) => dataApi.evaluateAlerts(state, accounts).filter((a) => a.status !== 'resolved'),
       setAlertStatus: (id, status) =>
         patch({ alertStatus: { ...state.alertStatus, [id]: { status, at: new Date().toISOString() } } }),
       addAlertRule: (rule) => patch({ alertRules: [...state.alertRules, rule] }),

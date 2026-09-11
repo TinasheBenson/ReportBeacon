@@ -13,19 +13,26 @@ import { money, money2, num } from './format'
 // Roles (internal only)
 // ---------------------------------------------------------------------------
 
-export type RoleId = 'owner' | 'manager'
+export type RoleId = 'owner' | 'manager' | 'viewer'
 
 export interface Role {
   id: RoleId
   label: string
   /** Sees agency economics: retainer, margin. */
   seesEconomics: boolean
+  /** Can change things — import, assign, schedule, resolve. Viewers cannot. */
+  canWrite: boolean
 }
 
 export const ROLES: Role[] = [
-  { id: 'owner', label: 'Owner', seesEconomics: true },
-  { id: 'manager', label: 'Account manager', seesEconomics: false },
+  { id: 'owner', label: 'Owner', seesEconomics: true, canWrite: true },
+  { id: 'manager', label: 'Account manager', seesEconomics: false, canWrite: true },
+  { id: 'viewer', label: 'Viewer', seesEconomics: false, canWrite: false },
 ]
+
+export const ROLE_LABEL: Record<RoleId, string> = {
+  owner: 'Agency owner', manager: 'Account manager', viewer: 'Viewer',
+}
 
 // ---------------------------------------------------------------------------
 // Seats (mock auth). An owner sees the whole agency; each manager sees only
@@ -46,6 +53,7 @@ export const SEATS: Seat[] = [
   { id: 'owner', name: 'Tinashe Benson', initials: 'TB', role: 'owner', title: 'Agency owner', accountIds: [] },
   { id: 'dana', name: 'Dana Okafor', initials: 'DO', role: 'manager', title: 'Account manager', accountIds: ['brightside-dental', 'redline-auto'] },
   { id: 'marcus', name: 'Marcus Reyes', initials: 'MR', role: 'manager', title: 'Account manager', accountIds: ['harbor-vine-law', 'verde-medspa'] },
+  { id: 'priya', name: 'Priya Shah', initials: 'PS', role: 'viewer', title: 'Viewer · read-only', accountIds: [] },
 ]
 
 export function getSeat(id: string): Seat | undefined {

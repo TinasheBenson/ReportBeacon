@@ -24,7 +24,7 @@ const COLOR: Record<SourceStatus, string> = { live: 'var(--st-good)', syncing: '
 export default function Integrations() {
   const { ai, setAi } = useApp()
   const {
-    me, isAdmin, accountsForSeat, connections, connectProvider, disconnectProvider,
+    me, isAdmin, canWrite, accountsForSeat, connections, connectProvider, disconnectProvider,
     importable, importClient,
   } = useWorkspace()
   const accounts = me ? accountsForSeat(me) : []
@@ -107,7 +107,9 @@ export default function Integrations() {
                   <div className="text-[13px] font-semibold">{a.name}</div>
                   <div className="text-[11.5px] text-[var(--muted)]">{a.trade} · {a.location}</div>
                 </div>
-                <Button variant="primary" className="press" onClick={() => doImport(a.id, a.name)}><Plus size={14} /> Import</Button>
+                {canWrite
+                  ? <Button variant="primary" className="press" onClick={() => doImport(a.id, a.name)}><Plus size={14} /> Import</Button>
+                  : <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Read-only</span>}
               </div>
             ))}
           </div>
@@ -176,7 +178,7 @@ export default function Integrations() {
                     <div key={pl.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3 py-2.5 flex flex-col gap-1.5">
                       <div className="flex items-center justify-between"><span className="text-[12px] font-semibold">{pl.short}</span><span className="w-[9px] h-[9px] rounded-full" style={{ background: COLOR[s] }} /></div>
                       <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: COLOR[s] }}>{LABEL[s]}</span>
-                      {s === 'attention' && <Button className="mt-1 py-1 px-2 text-[11px] press" onClick={() => toast.success(`Reauthorizing ${pl.name}`, { description: a.name })}><RefreshCw size={12} /> Reconnect</Button>}
+                      {canWrite && s === 'attention' && <Button className="mt-1 py-1 px-2 text-[11px] press" onClick={() => toast.success(`Reauthorizing ${pl.name}`, { description: a.name })}><RefreshCw size={12} /> Reconnect</Button>}
                     </div>
                   )
                 })}

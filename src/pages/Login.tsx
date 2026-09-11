@@ -37,7 +37,7 @@ export default function Login() {
 
         <div className="flex flex-col gap-2.5">
           {members.map((s, i) => {
-            const count = s.role === 'owner' ? 'All accounts · agency economics' : `${clientCount(s.id)} accounts`
+            const count = s.role === 'owner' ? 'All accounts · agency economics' : s.role === 'viewer' ? 'Read-only · all accounts' : `${clientCount(s.id)} accounts`
             return (
               <motion.button
                 key={s.id}

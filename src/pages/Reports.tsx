@@ -45,7 +45,7 @@ function reportingPeriod(range: RangeId): { period: string; compared: string; pr
 export default function Reports() {
   const [params] = useSearchParams()
   const { range, setRange } = useApp()
-  const { me, accountsForSeat, getClient, brand, brandMonogram, schedules, setSchedule } = useWorkspace()
+  const { me, accountsForSeat, getClient, brand, brandMonogram, schedules, setSchedule, canWrite } = useWorkspace()
   const scope = me ? accountsForSeat(me) : []
   const paramAcct = params.get('account') || ''
   const initial = scope.some((a) => a.id === paramAcct) ? paramAcct : (scope[0]?.id ?? '')
@@ -119,29 +119,37 @@ export default function Reports() {
           </div>
           <p className="text-[11.5px] text-[var(--muted)] mb-3">Send this report to {account.name} on a schedule. No more building it by hand.</p>
 
-          <label className="eyebrow">Frequency</label>
-          <div className="mt-2 mb-3.5">
-            <Segmented
-              value={schedule.freq}
-              onChange={(v) => { setSchedule(account.id, { ...schedule, freq: v }); toast.success(v === 'off' ? 'Automatic delivery turned off' : `Scheduled ${v}`, { description: v === 'off' ? account.name : `${account.name} · next ${fmt(nextSend(v))}` }) }}
-              options={FREQ_OPTS.map((o) => ({ value: o.value, label: o.label }))}
-              className="w-full"
+          {canWrite ? (<>
+            <label className="eyebrow">Frequency</label>
+            <div className="mt-2 mb-3.5">
+              <Segmented
+                value={schedule.freq}
+                onChange={(v) => { setSchedule(account.id, { ...schedule, freq: v }); toast.success(v === 'off' ? 'Automatic delivery turned off' : `Scheduled ${v}`, { description: v === 'off' ? account.name : `${account.name} · next ${fmt(nextSend(v))}` }) }}
+                options={FREQ_OPTS.map((o) => ({ value: o.value, label: o.label }))}
+                className="w-full"
+              />
+            </div>
+
+            <label className="eyebrow">Send to</label>
+            <input
+              type="email"
+              value={schedule.recipient}
+              onChange={(e) => setSchedule(account.id, { ...schedule, recipient: e.target.value })}
+              placeholder="client@email.com"
+              className="w-full mt-2 bg-[var(--surface-2)] border border-[var(--line-2)] rounded-[8px] px-3 py-2 text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]"
             />
-          </div>
 
-          <label className="eyebrow">Send to</label>
-          <input
-            type="email"
-            value={schedule.recipient}
-            onChange={(e) => setSchedule(account.id, { ...schedule, recipient: e.target.value })}
-            placeholder="client@email.com"
-            className="w-full mt-2 bg-[var(--surface-2)] border border-[var(--line-2)] rounded-[8px] px-3 py-2 text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]"
-          />
-
-          {schedule.freq !== 'off' && (
-            <div className="mt-3 flex items-center gap-2 text-[11.5px] text-[var(--ink-2)] bg-[var(--accent-weak)] rounded-[8px] px-3 py-2">
-              <CalendarClock size={13} className="text-[var(--accent)] flex-none" />
-              Next send <b className="text-[var(--ink)]">{fmt(nextSend(schedule.freq))}</b>{schedule.recipient ? <> to {schedule.recipient}</> : null}
+            {schedule.freq !== 'off' && (
+              <div className="mt-3 flex items-center gap-2 text-[11.5px] text-[var(--ink-2)] bg-[var(--accent-weak)] rounded-[8px] px-3 py-2">
+                <CalendarClock size={13} className="text-[var(--accent)] flex-none" />
+                Next send <b className="text-[var(--ink)]">{fmt(nextSend(schedule.freq))}</b>{schedule.recipient ? <> to {schedule.recipient}</> : null}
+              </div>
+            )}
+          </>) : (
+            <div className="text-[12px] text-[var(--ink-2)]">
+              {schedule.freq === 'off'
+                ? <>No automatic delivery set. <span className="text-[var(--muted)]">Read-only — an account manager sets this.</span></>
+                : <>Sends <b>{schedule.freq}</b>{schedule.recipient ? <> to {schedule.recipient}</> : null}, next {fmt(nextSend(schedule.freq))}. <span className="text-[var(--muted)]">Read-only.</span></>}
             </div>
           )}
         </Card>

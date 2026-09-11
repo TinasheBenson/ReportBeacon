@@ -17,6 +17,7 @@ import Team from '@/pages/Team'
 import Branding from '@/pages/Branding'
 import Automations from '@/pages/Automations'
 import AlertRules from '@/pages/AlertRules'
+import AcceptInvite from '@/pages/AcceptInvite'
 
 export default function App() {
   const { theme, seatId } = useApp()
@@ -24,6 +25,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         {seatId ? (
           <Route path="/app" element={<Shell />}>
             <Route index element={<Portfolio />} />
