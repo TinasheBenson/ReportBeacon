@@ -391,7 +391,7 @@ export function metricsFor(a: Account, range: RangeId): RangeMetrics {
 /** Month-to-date spend against monthly budget. */
 export function pacing(a: Account): { mtd: number; budget: number; pct: number } {
   const mtd = windowSum(a.spendDaily, 21, 0)
-  return { mtd: Math.round(mtd), budget: a.budget, pct: Math.round((mtd / a.budget) * 100) }
+  return { mtd: Math.round(mtd), budget: a.budget, pct: a.budget > 0 ? Math.round((mtd / a.budget) * 100) : 0 }
 }
 
 // ---------------------------------------------------------------------------

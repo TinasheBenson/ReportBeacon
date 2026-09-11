@@ -329,7 +329,7 @@ function ChannelTable({ account }: { account: Account }) {
             <td className="py-2.5">Blended</td>
             <td className="py-2.5 text-right mono">{money(totalSpend)}</td>
             <td className="py-2.5 text-right mono">{num(totalLeads)}</td>
-            <td className="py-2.5 text-right mono">{money2(totalSpend / totalLeads)}</td>
+            <td className="py-2.5 text-right mono">{totalLeads > 0 ? money2(totalSpend / totalLeads) : '—'}</td>
           </tr>
         </tbody>
       </table>

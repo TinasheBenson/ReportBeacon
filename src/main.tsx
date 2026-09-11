@@ -5,15 +5,18 @@ import './index.css'
 import App from './App'
 import { AppProvider } from './context/app'
 import { WorkspaceProvider } from './context/workspace'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AppProvider>
-        <WorkspaceProvider>
-          <App />
-        </WorkspaceProvider>
-      </AppProvider>
+      <ErrorBoundary>
+        <AppProvider>
+          <WorkspaceProvider>
+            <App />
+          </WorkspaceProvider>
+        </AppProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   </StrictMode>,
 )

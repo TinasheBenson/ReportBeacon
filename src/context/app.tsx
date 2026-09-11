@@ -4,7 +4,7 @@
  * localStorage so a reload keeps the operator where they were.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { type RangeId } from '@/lib/data'
+import { RANGES, SEATS, type RangeId } from '@/lib/data'
 
 type Theme = 'light' | 'dark'
 export interface AIConfigState { key: string; model: string }
@@ -44,6 +44,25 @@ function writeLS(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* private mode */ }
 }
 
+// Persisted values are only trusted after validation: a value left by an older
+// build (a renamed range, a removed seat, a wrong shape) is coerced back to a
+// safe default rather than flowing into a hot path and crashing the render.
+function readRange(): RangeId {
+  const v = readLS<unknown>('rb-range', '30d')
+  return RANGES.some((r) => r.id === v) ? (v as RangeId) : '30d'
+}
+function readSeat(): string | null {
+  const v = readLS<unknown>('rb-seat', null)
+  return typeof v === 'string' && SEATS.some((s) => s.id === v) ? v : null
+}
+function readAi(): AIConfigState {
+  const v = readLS<unknown>('rb-ai', null)
+  if (v && typeof v === 'object' && typeof (v as any).key === 'string' && typeof (v as any).model === 'string') {
+    return { key: (v as any).key, model: (v as any).model }
+  }
+  return { key: '', model: 'anthropic/claude-3.5-sonnet' }
+}
+
 function initialTheme(): Theme {
   const stored = readLS<Theme | null>('rb-theme', null)
   if (stored === 'light' || stored === 'dark') return stored
@@ -53,11 +72,11 @@ function initialTheme(): Theme {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme)
-  const [seatId, setSeatId] = useState<string | null>(() => readLS<string | null>('rb-seat', null))
-  const [range, setRangeState] = useState<RangeId>(() => readLS<RangeId>('rb-range', '30d'))
+  const [seatId, setSeatId] = useState<string | null>(readSeat)
+  const [range, setRangeState] = useState<RangeId>(readRange)
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => readLS<boolean>('rb-nav', false))
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [ai, setAiState] = useState<AIConfigState>(() => readLS<AIConfigState>('rb-ai', { key: '', model: 'anthropic/claude-3.5-sonnet' }))
+  const [ai, setAiState] = useState<AIConfigState>(readAi)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)

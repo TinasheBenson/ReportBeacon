@@ -3,7 +3,7 @@
  * key is saved, "Generate with <model>" swaps in live model output, falling
  * back to the rule engine on any error.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { Sparkles, X, ArrowRight, Lightbulb, Wallet, Wrench, Star, Search, Loader2 } from 'lucide-react'
@@ -27,6 +27,8 @@ export function RecommendationsPanel({ accounts, showAccount = true }: { account
 
   // Reset when the scope changes.
   const scopeKey = accounts.map((a) => a.id).join(',')
+  const scopeRef = useRef(scopeKey)
+  scopeRef.current = scopeKey
   const [lastScope, setLastScope] = useState(scopeKey)
   if (scopeKey !== lastScope) {
     setLastScope(scopeKey)
@@ -39,9 +41,12 @@ export function RecommendationsPanel({ accounts, showAccount = true }: { account
 
   async function generate() {
     if (!ai.key) return
+    const startedScope = scopeKey
     setGenerating(true)
     try {
       const results = await Promise.allSettled(accounts.map((a) => generateLive(a, ai)))
+      // Scope changed while the request was in flight — drop these stale results.
+      if (scopeRef.current !== startedScope) return
       const next: Recommendation[] = []
       let ok = 0, failed = 0
       results.forEach((res, i) => {
