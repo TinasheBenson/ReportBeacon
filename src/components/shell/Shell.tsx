@@ -12,30 +12,40 @@ import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
 import { SOCIAL_ACCOUNTS } from '@/lib/social'
 
-// Ground anchors per theme (mirrors index.css) and how strongly the base hue
-// tints each surface. A null base clears the overrides and today's neutral
-// palette applies unchanged.
-const GROUND = {
-  light: { '--plane': '#f7f8fa', '--surface': '#ffffff', '--surface-2': '#fbfbfd', '--line': '#e7e9ee', '--line-2': '#d7dbe2' },
-  dark: { '--plane': '#0c0d10', '--surface': '#16181d', '--surface-2': '#1b1e24', '--line': '#262a31', '--line-2': '#333842' },
-} as const
-const TINT = {
-  light: { '--plane': 11, '--surface': 7, '--surface-2': 13, '--line': 24, '--line-2': 30 },
-  dark: { '--plane': 16, '--surface': 15, '--surface-2': 20, '--line': 28, '--line-2': 34 },
-} as const
-const GROUND_KEYS = ['--plane', '--surface', '--surface-2', '--line', '--line-2'] as const
+// A face's brand colour ("base") paints the chrome — the nav rail and its
+// accents — while the content area stays on the neutral ground from index.css.
+// So the two faces read apart at a glance (a blue Social rail vs. a neutral
+// Performance one) without tinting the dashboard itself. A null base clears
+// these overrides and the chrome falls back to the neutral tokens.
+const CHROME_KEYS = [
+  '--chrome', '--chrome-2', '--chrome-ink', '--chrome-ink-2', '--chrome-muted',
+  '--chrome-line', '--chrome-line-2', '--chrome-hover', '--chrome-active-bg', '--chrome-active-ink',
+] as const
 
-function applyPalette(pal: Pal, theme: 'light' | 'dark') {
+function applyFace(pal: Pal, theme: 'light' | 'dark') {
   const root = document.documentElement.style
   root.setProperty('--accent', pal.accent)
-  if (!pal.base) { for (const k of GROUND_KEYS) root.removeProperty(k); return }
-  const g = GROUND[theme]; const t = TINT[theme]
-  for (const k of GROUND_KEYS) root.setProperty(k, `color-mix(in srgb, ${pal.base} ${t[k]}%, ${g[k]})`)
+  if (!pal.base) { for (const k of CHROME_KEYS) root.removeProperty(k); return }
+  // In dark mode, seat the brand hue into the surrounding dark UI so it reads
+  // as chrome rather than a glowing block; in light mode use it at full strength.
+  const bg = theme === 'dark' ? `color-mix(in srgb, ${pal.base} 64%, #0b0d12)` : pal.base
+  const bg2 = theme === 'dark' ? `color-mix(in srgb, ${pal.base} 50%, #0b0d12)` : `color-mix(in srgb, ${pal.base} 90%, #000)`
+  const set = (k: string, v: string) => root.setProperty(k, v)
+  set('--chrome', bg)
+  set('--chrome-2', bg2)
+  set('--chrome-ink', '#ffffff')
+  set('--chrome-ink-2', 'rgba(255,255,255,0.76)')
+  set('--chrome-muted', 'rgba(255,255,255,0.56)')
+  set('--chrome-line', 'rgba(255,255,255,0.15)')
+  set('--chrome-line-2', 'rgba(255,255,255,0.24)')
+  set('--chrome-hover', 'rgba(255,255,255,0.12)')
+  set('--chrome-active-bg', 'rgba(255,255,255,0.18)')
+  set('--chrome-active-ink', '#ffffff')
 }
-function clearPalette() {
+function clearFace() {
   const root = document.documentElement.style
   root.removeProperty('--accent')
-  for (const k of GROUND_KEYS) root.removeProperty(k)
+  for (const k of CHROME_KEYS) root.removeProperty(k)
 }
 import { IconButton, Segmented } from '@/components/ui/kit'
 
@@ -105,17 +115,17 @@ export default function Shell() {
     else if (mode === 'both' && appFace === 'social' && path === '/app') navigate('/app/social', { replace: true })
   }, [mode, appFace, location.pathname, navigate])
 
-  // White-label: apply the active face's palette (ground tint + highlight) to
-  // the tokens, easing the whole environment across on a switch or brand edit.
+  // White-label: paint the active face's brand colour onto the chrome (rail +
+  // accents) and set the highlight, easing it across on a switch or brand edit.
   const pal = face === 'social' ? brand.social : brand.performance
   useEffect(() => {
     const el = document.documentElement
     el.classList.add('theme-morph')
-    applyPalette(pal, theme)
+    applyFace(pal, theme)
     const t = setTimeout(() => el.classList.remove('theme-morph'), 560)
     return () => clearTimeout(t)
   }, [pal.base, pal.accent, theme])
-  useEffect(() => clearPalette, [])
+  useEffect(() => clearFace, [])
 
   const railWidth = navCollapsed ? 'lg:w-[68px]' : 'lg:w-[236px]'
   const doSignOut = () => { signOut(); navigate('/app') }
@@ -127,29 +137,29 @@ export default function Shell() {
 
       <div className="flex min-h-screen">
         <aside
-          className={`no-print fixed lg:sticky top-0 z-50 lg:z-auto h-screen flex flex-col bg-[var(--surface)] border-r border-[var(--line)] transition-all duration-200 ${railWidth} w-[236px]
+          className={`no-print fixed lg:sticky top-0 z-50 lg:z-auto h-screen flex flex-col bg-[var(--chrome)] text-[var(--chrome-ink-2)] border-r border-[var(--chrome-line)] transition-all duration-200 ${railWidth} w-[236px]
             ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
         >
           <Rail collapsed={navCollapsed} alertCount={alertCount} nav1={nav1} nav2={NAV_2} home={home} face={face} onCloseMobile={() => setMobileNavOpen(false)} />
 
           {/* Seat + collapse */}
-          <div className="mt-auto border-t border-[var(--line)] p-2">
+          <div className="mt-auto border-t border-[var(--chrome-line)] p-2">
             <div className={`flex items-center gap-2.5 px-2 py-2 ${navCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold text-white" style={{ background: seat?.role === 'owner' ? 'var(--ink)' : seat?.role === 'viewer' ? 'var(--muted)' : 'var(--accent)' }}>{seat?.initials ?? '-'}</span>
+              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold bg-[var(--chrome-active-bg)] text-[var(--chrome-ink)]">{seat?.initials ?? '-'}</span>
               {!navCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <div className="text-[12.5px] font-semibold truncate">{seat?.name}</div>
-                  <div className="text-[11px] text-[var(--muted)]">{seat?.title}</div>
+                  <div className="text-[12.5px] font-semibold truncate text-[var(--chrome-ink)]">{seat?.name}</div>
+                  <div className="text-[11px] text-[var(--chrome-muted)]">{seat?.title}</div>
                 </div>
               )}
-              {!navCollapsed && <IconButton label="Sign out" onClick={doSignOut} className="w-8 h-8"><LogOut size={15} /></IconButton>}
+              {!navCollapsed && <IconButton chrome label="Sign out" onClick={doSignOut} className="w-8 h-8"><LogOut size={15} /></IconButton>}
             </div>
             {navCollapsed && (
-              <button onClick={doSignOut} title="Sign out" className="hidden lg:flex w-full justify-center py-1.5 text-[var(--muted)] hover:text-[var(--ink)]"><LogOut size={15} /></button>
+              <button onClick={doSignOut} title="Sign out" className="hidden lg:flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><LogOut size={15} /></button>
             )}
             <button
               onClick={toggleNav}
-              className="hidden lg:flex items-center gap-2.5 w-full px-2 py-2 mt-1 rounded-[8px] text-[13px] text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors"
+              className="hidden lg:flex items-center gap-2.5 w-full px-2 py-2 mt-1 rounded-[8px] text-[13px] text-[var(--chrome-ink-2)] hover:bg-[var(--chrome-hover)] hover:text-[var(--chrome-ink)] transition-colors"
               title={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
             >
               {navCollapsed ? <PanelLeftOpen size={18} className="mx-auto" /> : <><PanelLeftClose size={18} /> Collapse</>}
@@ -192,15 +202,15 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
     <>
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
         {brand.logo
-          ? <img src={brand.logo} alt="" className="w-[30px] h-[30px] rounded-[8px] object-cover flex-none" />
+          ? <img src={brand.logo} alt="" className="w-[30px] h-[30px] rounded-[8px] object-contain bg-white p-[3px] flex-none" />
           : <span className="w-[30px] h-[30px] rounded-[8px] grid place-items-center flex-none text-[12px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
         {!collapsed && (
           <div className="min-w-0">
-            <div className="font-bold text-[14.5px] tracking-[-0.01em] leading-tight truncate">{brand.agencyName}</div>
-            <div className="text-[11px] text-[var(--muted)] mt-0.5">{face === 'social' ? 'Social · ReportBeacon' : 'Powered by ReportBeacon'}</div>
+            <div className="font-bold text-[14.5px] tracking-[-0.01em] leading-tight truncate text-[var(--chrome-ink)]">{brand.agencyName}</div>
+            <div className="text-[11px] text-[var(--chrome-muted)] mt-0.5">{face === 'social' ? 'Social · ReportBeacon' : 'Powered by ReportBeacon'}</div>
           </div>
         )}
-        <IconButton label="Close navigation" className="lg:hidden ml-auto" onClick={(e: any) => { e.preventDefault(); onCloseMobile() }}><X size={16} /></IconButton>
+        <IconButton chrome label="Close navigation" className="lg:hidden ml-auto" onClick={(e: any) => { e.preventDefault(); onCloseMobile() }}><X size={16} /></IconButton>
       </Link>
       <nav className="flex-1 overflow-y-auto clip-scroll px-2.5">
         <NavGroup collapsed={collapsed} label="Workspace" items={nav1} alertCount={alertCount} />
@@ -215,7 +225,7 @@ function NavGroup({ collapsed, label, items, alertCount }: {
 }) {
   return (
     <div className="mb-1">
-      {!collapsed ? <div className="text-[10.5px] font-semibold tracking-[0.06em] uppercase text-[var(--muted)] px-2 pt-3.5 pb-1.5">{label}</div> : <div className="h-3.5" />}
+      {!collapsed ? <div className="text-[10.5px] font-semibold tracking-[0.06em] uppercase text-[var(--chrome-muted)] px-2 pt-3.5 pb-1.5">{label}</div> : <div className="h-3.5" />}
       {items.map((it) => {
         const Icon = it.icon
         return (
@@ -226,7 +236,7 @@ function NavGroup({ collapsed, label, items, alertCount }: {
             title={collapsed ? it.label : undefined}
             className={({ isActive }) =>
               `relative flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 my-[1px] text-[13.5px] font-medium border border-transparent transition-colors ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
-                isActive ? 'bg-[var(--accent-weak)] text-[var(--accent)] font-semibold border-[color-mix(in_srgb,var(--accent)_22%,transparent)]' : 'text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'
+                isActive ? 'bg-[var(--chrome-active-bg)] text-[var(--chrome-active-ink)] font-semibold border-[var(--chrome-line-2)]' : 'text-[var(--chrome-ink-2)] hover:bg-[var(--chrome-hover)] hover:text-[var(--chrome-ink)]'
               }`
             }
           >

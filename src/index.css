@@ -21,6 +21,19 @@
   --accent: #4a3aa7;
   --accent-weak: color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-ink: #ffffff;
+  /* Chrome = the nav rail + topbar. Neutral by default; a face with a brand
+     base (see applyChrome in Shell) overrides these inline so the navigation
+     carries the brand colour while the content area below stays clean white. */
+  --chrome: #ffffff;
+  --chrome-2: #f7f8fa;
+  --chrome-ink: #101828;
+  --chrome-ink-2: #5a6472;
+  --chrome-muted: #98a2b3;
+  --chrome-line: #e7e9ee;
+  --chrome-line-2: #d7dbe2;
+  --chrome-hover: #f1f2f5;
+  --chrome-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --chrome-active-ink: var(--accent);
   --good: #067647;
   --bad: #b42318;
   --st-good: #0ca30c;
@@ -48,6 +61,16 @@
     --accent: #9085e9;
     --accent-weak: color-mix(in srgb, var(--accent) 24%, transparent);
     --accent-ink: #14121f;
+    --chrome: #16181d;
+    --chrome-2: #1b1e24;
+    --chrome-ink: #f2f4f7;
+    --chrome-ink-2: #a4abb8;
+    --chrome-muted: #737a88;
+    --chrome-line: #262a31;
+    --chrome-line-2: #333842;
+    --chrome-hover: #1f232b;
+    --chrome-active-bg: color-mix(in srgb, var(--accent) 24%, transparent);
+    --chrome-active-ink: var(--accent);
     --good: #55d38c;
     --bad: #f97066;
     --st-good: #17b917;
@@ -74,6 +97,16 @@
   --accent: #9085e9;
   --accent-weak: color-mix(in srgb, var(--accent) 24%, transparent);
   --accent-ink: #14121f;
+  --chrome: #16181d;
+  --chrome-2: #1b1e24;
+  --chrome-ink: #f2f4f7;
+  --chrome-ink-2: #a4abb8;
+  --chrome-muted: #737a88;
+  --chrome-line: #262a31;
+  --chrome-line-2: #333842;
+  --chrome-hover: #1f232b;
+  --chrome-active-bg: color-mix(in srgb, var(--accent) 24%, transparent);
+  --chrome-active-ink: var(--accent);
   --good: #55d38c;
   --bad: #f97066;
   --st-good: #17b917;

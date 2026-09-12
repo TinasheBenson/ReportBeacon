@@ -56,12 +56,17 @@ interface Persisted {
 // their own agency, then rebrands it live on the Branding screen.
 const DEFAULT_BRAND: Brand = {
   agencyName: 'Your Agency', logo: null,
-  // Performance keeps the neutral ground (base null) with the indigo highlight.
+  // Performance keeps the neutral navigation (base null) with the indigo highlight.
   performance: { base: null, accent: '#4a3aa7' },
-  // Social gets a distinct identity out of the box: a mint-green dashboard with
-  // an orange highlight, so switching faces changes the whole environment.
-  social: { base: '#12b886', accent: '#fd7e14' },
+  // Social gets its own identity out of the box: a blue navigation rail with a
+  // bright blue highlight. The content area stays white — only the chrome
+  // (sidebar + accents) carries the colour, so the two faces read apart at a
+  // glance even in light mode.
+  social: { base: '#1d4ed8', accent: '#3b82f6' },
 }
+// The earlier mint/orange Social default, so returning demo sessions that never
+// customised the Social face are lifted to the new blue identity on load.
+const LEGACY_SOCIAL = { base: '#12b886', accent: '#fd7e14' }
 
 /** Accept both the current per-face shape and the older single-accent brand. */
 function migrateBrand(p: any): Brand {
@@ -69,10 +74,13 @@ function migrateBrand(p: any): Brand {
   const name = typeof p.agencyName === 'string' ? p.agencyName : DEFAULT_BRAND.agencyName
   const logo = typeof p.logo === 'string' ? p.logo : null
   if (p.performance && p.social) {
+    const social = { base: p.social.base ?? DEFAULT_BRAND.social.base, accent: p.social.accent ?? DEFAULT_BRAND.social.accent }
+    // Lift the old mint/orange default to the new blue one; keep any custom choice.
+    const isLegacy = (social.base ?? '').toLowerCase() === LEGACY_SOCIAL.base && (social.accent ?? '').toLowerCase() === LEGACY_SOCIAL.accent
     return {
       agencyName: name, logo,
       performance: { base: p.performance.base ?? null, accent: p.performance.accent ?? DEFAULT_BRAND.performance.accent },
-      social: { base: p.social.base ?? DEFAULT_BRAND.social.base, accent: p.social.accent ?? DEFAULT_BRAND.social.accent },
+      social: isLegacy ? { ...DEFAULT_BRAND.social } : social,
     }
   }
   // Older shape: { agencyName, accent, logo }.

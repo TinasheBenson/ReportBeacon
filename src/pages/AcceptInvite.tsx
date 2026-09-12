@@ -38,7 +38,7 @@ export default function AcceptInvite() {
 
         <div className="flex items-center gap-2.5 mb-6">
           {brand.logo
-            ? <img src={brand.logo} alt="" className="w-9 h-9 rounded-[9px] object-cover" />
+            ? <img src={brand.logo} alt="" className="h-10 max-w-[160px] object-contain object-left" />
             : <span className="w-9 h-9 rounded-[9px] grid place-items-center text-[13px] font-bold text-white" style={{ background: brand.performance.accent }}>{brandMonogram}</span>}
           <div>
             <div className="font-bold text-[16px] tracking-[-0.01em] leading-none">{brand.agencyName}</div>

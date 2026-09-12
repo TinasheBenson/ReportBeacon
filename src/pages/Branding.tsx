@@ -1,12 +1,13 @@
-/** Branding (admin): white-label the console and reports. Beyond a single
- *  accent, each face (Performance / Social) has its own palette — a dashboard
- *  ground colour and a highlight colour — so the two can look and feel
- *  distinct. Changes apply live across the app. */
+/** Branding (admin): white-label the console and reports. Each face
+ *  (Performance / Social) gets its own identity — a navigation colour that
+ *  paints the sidebar and chrome, and a highlight colour for buttons, active
+ *  items and charts. The dashboard content stays clean white either way, so
+ *  the two faces read apart at a glance. Changes apply live across the app. */
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Upload, Trash2, Check, Ban } from 'lucide-react'
 import { useApp, type Face } from '@/context/app'
-import { useWorkspace, type WorkspaceMode, type Palette } from '@/context/workspace'
+import { useWorkspace, type WorkspaceMode } from '@/context/workspace'
 import { Card, Button, SectionTitle, Segmented } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
 
@@ -15,34 +16,35 @@ const MODE_HINT: Record<WorkspaceMode, string> = {
   social: 'Social media reporting only.',
   both: 'Both, with a Performance / Social switch in the top bar.',
 }
-// Ground tints ("dashboard colour"). Neutral (null) keeps the default look.
+// Navigation colours. Neutral (null) keeps the clean default rail.
 const BASES: { value: string | null; label: string }[] = [
   { value: null, label: 'Neutral' },
-  { value: '#12b886', label: 'Emerald' }, { value: '#0ca678', label: 'Teal' },
-  { value: '#7c3aed', label: 'Violet' }, { value: '#e64980', label: 'Rose' },
-  { value: '#4f46e5', label: 'Indigo' }, { value: '#0ea5e9', label: 'Sky' },
-  { value: '#f59f00', label: 'Amber' }, { value: '#475569', label: 'Slate' },
+  { value: '#1d4ed8', label: 'Blue' }, { value: '#7c3aed', label: 'Violet' },
+  { value: '#0ca678', label: 'Teal' }, { value: '#e64980', label: 'Rose' },
+  { value: '#0f172a', label: 'Ink' }, { value: '#0891b2', label: 'Cyan' },
+  { value: '#ea580c', label: 'Orange' }, { value: '#475569', label: 'Slate' },
 ]
-const ACCENTS = ['#4a3aa7', '#fd7e14', '#2563eb', '#0d9488', '#16a34a', '#dc2626', '#db2777', '#7c3aed', '#f59f00', '#0ea5e9']
+const ACCENTS = ['#4a3aa7', '#3b82f6', '#2563eb', '#0d9488', '#16a34a', '#dc2626', '#db2777', '#7c3aed', '#f59f00', '#0ea5e9']
 
-function previewVars(pal: Palette, light: boolean): React.CSSProperties {
-  const g = light
-    ? { plane: '#f7f8fa', surface: '#ffffff', surface2: '#fbfbfd', line: '#e7e9ee', ink: '#101828', ink2: '#5a6472', muted: '#98a2b3' }
-    : { plane: '#0c0d10', surface: '#16181d', surface2: '#1b1e24', line: '#262a31', ink: '#f2f4f7', ink2: '#a4abb8', muted: '#737a88' }
-  const t = light ? { plane: 11, surface: 7, surface2: 13, line: 24 } : { plane: 16, surface: 15, surface2: 20, line: 28 }
-  const mix = (pct: number, anchor: string) => (pal.base ? `color-mix(in srgb, ${pal.base} ${pct}%, ${anchor})` : anchor)
-  return {
-    '--accent': pal.accent,
-    '--accent-weak': `color-mix(in srgb, ${pal.accent} ${light ? 12 : 24}%, transparent)`,
-    '--plane': mix(t.plane, g.plane), '--surface': mix(t.surface, g.surface), '--surface-2': mix(t.surface2, g.surface2),
-    '--line': mix(t.line, g.line), '--ink': g.ink, '--ink-2': g.ink2, '--muted': g.muted,
-  } as React.CSSProperties
+// Theme anchors for the live preview.
+function anchors(light: boolean) {
+  return light
+    ? { surface: '#ffffff', plane: '#f7f8fa', ink: '#101828', muted: '#98a2b3', line: '#e7e9ee' }
+    : { surface: '#16181d', plane: '#0c0d10', ink: '#f2f4f7', muted: '#737a88', line: '#262a31' }
+}
+// The nav strip style: a brand base paints it (white text); null keeps it neutral.
+function navStyle(base: string | null, light: boolean): React.CSSProperties {
+  const a = anchors(light)
+  if (!base) return { background: a.surface, color: a.ink, borderColor: a.line }
+  const bg = light ? base : `color-mix(in srgb, ${base} 64%, #0b0d12)`
+  return { background: bg, color: '#fff', borderColor: 'rgba(255,255,255,0.16)' }
 }
 
 export default function Branding() {
   const { theme } = useApp()
   const { isAdmin, brand, brandMonogram, setBrand, setPalette, mode, setMode } = useWorkspace()
-  const [editFace, setEditFace] = useState<Face>('performance')
+  const [editFace, setEditFace] = useState<Face>('social')
+  const light = theme === 'light'
 
   if (!isAdmin) {
     return <Card className="p-10 text-center text-[13px] text-[var(--muted)] max-w-[520px]">Branding is managed by the agency owner.</Card>
@@ -59,9 +61,16 @@ export default function Branding() {
 
   const pal = editFace === 'social' ? brand.social : brand.performance
   const isBase = (v: string | null) => (pal.base?.toLowerCase() ?? null) === (v?.toLowerCase() ?? null)
+  const a = anchors(light)
+  const nav = navStyle(pal.base, light)
+  const onBrand = !!pal.base
+  const activeItem: React.CSSProperties = onBrand
+    ? { background: 'rgba(255,255,255,0.18)', color: '#fff' }
+    : { background: `color-mix(in srgb, ${pal.accent} 14%, transparent)`, color: pal.accent }
+  const mutedOnNav = onBrand ? 'rgba(255,255,255,0.62)' : a.muted
 
   return (
-    <Reveal className="grid lg:grid-cols-[1fr_360px] gap-6 max-w-[980px]">
+    <Reveal className="grid lg:grid-cols-[1fr_380px] gap-6 max-w-[1000px]">
       {/* Controls */}
       <div className="flex flex-col gap-4">
         <Card className="p-5">
@@ -78,16 +87,20 @@ export default function Branding() {
             className="w-full mt-2 mb-5 bg-[var(--surface-2)] border border-[var(--line-2)] rounded-[8px] px-3 py-2 text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]" />
           <label className="eyebrow">Logo</label>
           <div className="flex items-center gap-3 mt-2.5">
-            {brand.logo
-              ? <img src={brand.logo} alt="" className="w-12 h-12 rounded-[10px] object-cover border border-[var(--line)]" />
-              : <span className="w-12 h-12 rounded-[10px] grid place-items-center text-[15px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
-            <label className="inline-flex">
-              <span className="inline-flex items-center gap-2 text-[13px] font-semibold px-3.5 py-2 rounded-[8px] border border-[var(--line-2)] bg-[var(--surface)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"><Upload size={15} /> Upload logo</span>
-              <input type="file" accept="image/*" onChange={onLogo} className="hidden" />
-            </label>
-            {brand.logo && <Button onClick={() => setBrand({ logo: null })}><Trash2 size={15} /> Remove</Button>}
+            <span className="w-16 h-16 rounded-[10px] grid place-items-center border border-[var(--line)] bg-[var(--surface-2)] overflow-hidden flex-none">
+              {brand.logo
+                ? <img src={brand.logo} alt="" className="max-w-[54px] max-h-[54px] object-contain" />
+                : <span className="text-[15px] font-bold text-white w-10 h-10 rounded-[8px] grid place-items-center" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
+            </span>
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex">
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold px-3.5 py-2 rounded-[8px] border border-[var(--line-2)] bg-[var(--surface)] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"><Upload size={15} /> Upload logo</span>
+                <input type="file" accept="image/*" onChange={onLogo} className="hidden" />
+              </label>
+              {brand.logo && <Button onClick={() => setBrand({ logo: null })}><Trash2 size={15} /> Remove</Button>}
+            </div>
           </div>
-          <div className="text-[11.5px] text-[var(--muted)] mt-2">PNG or SVG, under 400 KB. Shared across both faces.</div>
+          <div className="text-[11.5px] text-[var(--muted)] mt-2.5">PNG or SVG under 400 KB. Shown at its natural proportions, so wide wordmarks and square icons both sit right. Shared across both faces.</div>
         </Card>
 
         <Card className="p-5">
@@ -95,8 +108,8 @@ export default function Branding() {
           <Segmented value={editFace} onChange={setEditFace} className="w-full mb-4"
             options={[{ value: 'performance', label: 'Performance' }, { value: 'social', label: 'Social' }]} />
 
-          <label className="eyebrow">Dashboard colour</label>
-          <div className="text-[11px] text-[var(--muted)] mb-2.5">Tints the whole {editFace} console — backgrounds, cards and borders.</div>
+          <label className="eyebrow">Navigation colour</label>
+          <div className="text-[11px] text-[var(--muted)] mb-2.5">Paints the {editFace} sidebar and nav. The dashboard itself stays white.</div>
           <div className="flex flex-wrap items-center gap-2 mb-5">
             {BASES.map((b) => (
               <button key={b.label} onClick={() => setPalette(editFace, { base: b.value })} title={b.label} aria-label={b.label}
@@ -106,14 +119,14 @@ export default function Branding() {
                 {b.value !== null && isBase(b.value) && <Check size={15} className="text-white" />}
               </button>
             ))}
-            <label className="w-8 h-8 rounded-full border border-dashed border-[var(--line-2)] grid place-items-center cursor-pointer relative overflow-hidden" title="Custom dashboard colour">
+            <label className="w-8 h-8 rounded-full border border-dashed border-[var(--line-2)] grid place-items-center cursor-pointer relative overflow-hidden" title="Custom navigation colour">
               <span className="text-[11px] text-[var(--muted)]">+</span>
-              <input type="color" value={pal.base ?? '#12b886'} onChange={(e) => setPalette(editFace, { base: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <input type="color" value={pal.base ?? '#1d4ed8'} onChange={(e) => setPalette(editFace, { base: e.target.value })} className="absolute inset-0 opacity-0 cursor-pointer" />
             </label>
           </div>
 
           <label className="eyebrow">Highlight colour</label>
-          <div className="text-[11px] text-[var(--muted)] mb-2.5">Buttons, active items, links and emphasis.</div>
+          <div className="text-[11px] text-[var(--muted)] mb-2.5">Buttons, active items, links, and the chart lines.</div>
           <div className="flex flex-wrap items-center gap-2">
             {ACCENTS.map((c) => (
               <button key={c} onClick={() => setPalette(editFace, { accent: c })} aria-label={c}
@@ -130,30 +143,46 @@ export default function Branding() {
         </Card>
       </div>
 
-      {/* Live preview */}
+      {/* Live preview: a mini console — branded nav, white content. */}
       <div className="flex flex-col gap-3">
         <div className="eyebrow">Live preview · {editFace}</div>
-        <div className="rounded-[14px] border border-[var(--line)] overflow-hidden shadow-[var(--shadow)]" style={previewVars(pal, theme === 'light')}>
-          <div style={{ background: 'var(--plane)' }} className="p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2.5 rounded-[10px] bg-[var(--surface)] border border-[var(--line)] px-3 py-2.5">
-              {brand.logo ? <img src={brand.logo} alt="" className="w-[28px] h-[28px] rounded-[7px] object-cover" /> : <span className="w-[28px] h-[28px] rounded-[7px] grid place-items-center text-[11px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
-              <div><div className="font-bold text-[13px] leading-none" style={{ color: 'var(--ink)' }}>{brand.agencyName}</div><div className="text-[10.5px] mt-0.5" style={{ color: 'var(--muted)' }}>{editFace === 'social' ? 'Social · ReportBeacon' : 'Powered by ReportBeacon'}</div></div>
+        <div className="rounded-[14px] border overflow-hidden shadow-[var(--shadow-pop)]" style={{ borderColor: a.line }}>
+          <div className="flex" style={{ background: a.plane, height: 248 }}>
+            {/* Nav rail */}
+            <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none overflow-hidden" style={onBrand ? { background: '#fff', color: pal.base! } : { background: pal.accent, color: '#fff' }}>
+                  {brand.logo ? <img src={brand.logo} alt="" className="max-w-[18px] max-h-[18px] object-contain" /> : brandMonogram}
+                </span>
+                <span className="text-[10px] font-bold truncate">{brand.agencyName}</span>
+              </div>
+              <div className="rounded-[6px] px-2 py-1.5 text-[10.5px] font-semibold" style={activeItem}>Overview</div>
+              {['Reports', 'Insights'].map((t) => <div key={t} className="rounded-[6px] px-2 py-1.5 text-[10.5px]" style={{ color: mutedOnNav }}>{t}</div>)}
             </div>
-            <div className="flex items-center gap-2 rounded-[8px] px-2.5 py-2 text-[13px] font-semibold" style={{ background: 'var(--accent-weak)', color: 'var(--accent)' }}>
-              <span className="w-4 h-4 rounded-[4px]" style={{ background: 'var(--accent)' }} /> Active nav item
+            {/* Content */}
+            <div className="flex-1 p-3 flex flex-col gap-2.5 min-w-0">
+              <div className="text-[12px] font-bold" style={{ color: a.ink }}>Overview</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[['Reach', '164.9K'], ['Engagement', '5.2%']].map(([k, v]) => (
+                  <div key={k} className="rounded-[8px] border p-2" style={{ background: a.surface, borderColor: a.line }}>
+                    <div className="text-[8.5px] uppercase tracking-wide" style={{ color: a.muted }}>{k}</div>
+                    <div className="text-[14px] font-bold mono" style={{ color: a.ink }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-[8px] border p-2 flex-1 flex flex-col" style={{ background: a.surface, borderColor: a.line }}>
+                <div className="text-[8.5px] uppercase tracking-wide mb-1" style={{ color: a.muted }}>Trend</div>
+                <svg viewBox="0 0 120 40" preserveAspectRatio="none" className="w-full flex-1">
+                  <defs><linearGradient id="pvg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={pal.accent} stopOpacity={0.28} /><stop offset="1" stopColor={pal.accent} stopOpacity={0} /></linearGradient></defs>
+                  <path d="M0 32 L20 26 L40 28 L60 16 L80 20 L100 9 L120 12 L120 40 L0 40 Z" fill="url(#pvg)" />
+                  <path d="M0 32 L20 26 L40 28 L60 16 L80 20 L100 9 L120 12" fill="none" stroke={pal.accent} strokeWidth={2} />
+                </svg>
+              </div>
+              <button className="inline-flex items-center justify-center text-[11px] font-semibold px-3 py-1.5 rounded-[7px] text-white w-fit" style={{ background: pal.accent }}>Export report</button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {['Reach', 'Engagement'].map((k) => (
-                <div key={k} className="rounded-[9px] bg-[var(--surface)] border border-[var(--line)] p-2.5">
-                  <div className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{k}</div>
-                  <div className="text-[15px] font-bold mono" style={{ color: 'var(--ink)' }}>{k === 'Reach' ? '164.9K' : '5.2%'}</div>
-                </div>
-              ))}
-            </div>
-            <button className="inline-flex items-center justify-center gap-2 text-[13px] font-semibold px-3.5 py-2 rounded-[8px] text-white w-fit" style={{ background: 'var(--accent)' }}>Primary action</button>
           </div>
         </div>
-        <div className="text-[11.5px] text-[var(--muted)]">Switching between Performance and Social morphs the whole console to that face's palette.</div>
+        <div className="text-[11.5px] text-[var(--muted)]">Switching between Performance and Social morphs the nav and highlights to that face. The content area stays white.</div>
       </div>
     </Reveal>
   )

@@ -164,7 +164,7 @@ export default function Reports() {
             <div>
               <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)] mb-3">
                 {brand.logo
-                  ? <img src={brand.logo} alt="" className="w-[22px] h-[22px] rounded-[6px] object-cover" />
+                  ? <img src={brand.logo} alt="" className="h-[24px] max-w-[120px] object-contain object-left" />
                   : <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
                 <span className="font-semibold">{brand.agencyName}</span>
               </div>

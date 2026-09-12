@@ -4,10 +4,11 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { RANGES } from '@/lib/data'
-import { SOCIAL_ACCOUNTS, socialTotals, socialMetrics, allSocialAlerts, socialHealth, socialPlatform, type SocialAccount, type Health } from '@/lib/social'
+import { SOCIAL_ACCOUNTS, socialTotals, socialMetrics, allSocialAlerts, socialHealth, type SocialAccount, type Health } from '@/lib/social'
 import { compact, num } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
 import { Card, Stat, Segmented, Button, SectionTitle, SeverityDot, Chip } from '@/components/ui/kit'
+import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { Reveal } from '@/components/ui/disclosure'
 
 const HEALTH_LABEL: Record<Health, string> = { good: 'Healthy', watch: 'Watch', risk: 'At risk' }
@@ -88,7 +89,7 @@ function Row({ a, range }: { a: SocialAccount; range: any }) {
           <span><span className="block font-semibold text-[13px] group-hover:text-[var(--accent)] transition-colors">{a.name}</span><span className="block text-[11px] text-[var(--muted)]">{a.handle} · {a.location}</span></span>
         </Link>
       </td>
-      <td className="py-3 px-4"><div className="flex items-center gap-1">{a.platforms.map((p) => { const pl = socialPlatform(p); return <span key={p} title={pl.name} className="w-[18px] h-[18px] rounded-[5px] grid place-items-center text-[8.5px] font-bold text-white" style={{ background: pl.color }}>{pl.short}</span> })}</div></td>
+      <td className="py-3 px-4"><div className="flex items-center gap-1.5">{a.platforms.map((p) => <PlatformLogo key={p} platform={p} size={19} />)}</div></td>
       <td className="py-3 px-4 text-right mono">{compact(a.followers)}<span className={`ml-1.5 text-[11px] ${a.followersDelta >= 0 ? 'text-[var(--good)]' : 'text-[var(--bad)]'}`}>{a.followersDelta >= 0 ? '▲' : '▼'}{Math.abs(a.followersDelta).toFixed(1)}%</span></td>
       <td className="py-3 px-4 text-right mono">{compact(m.reach)}</td>
       <td className="py-3 px-4 text-right mono">{m.engagementRate}%</td>

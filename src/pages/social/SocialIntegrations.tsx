@@ -6,6 +6,7 @@ import { useWorkspace } from '@/context/workspace'
 import { SOCIAL_PLATFORMS, SOCIAL_ACCOUNTS, socialPlatform, type SocialPlatformId } from '@/lib/social'
 import { relTime } from '@/lib/format'
 import { Card, Button } from '@/components/ui/kit'
+import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { Reveal } from '@/components/ui/disclosure'
 
 export default function SocialIntegrations() {
@@ -28,7 +29,7 @@ export default function SocialIntegrations() {
             return (
               <div key={pl.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3 py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="w-6 h-6 rounded-[6px] grid place-items-center text-[9px] font-bold text-white" style={{ background: pl.color }}>{pl.short}</span>
+                  <PlatformLogo platform={pl.id} size={26} />
                   <span className="w-[9px] h-[9px] rounded-full" style={{ background: isOn ? 'var(--st-good)' : 'var(--line-2)' }} />
                 </div>
                 <span className="text-[12.5px] font-semibold">{pl.name}</span>
@@ -62,7 +63,7 @@ export default function SocialIntegrations() {
                   const live = on[pid]
                   return (
                     <span key={pid} className="inline-flex items-center gap-1.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-[8px] px-2.5 py-1.5 text-[12px]">
-                      <span className="w-4 h-4 rounded-[4px] grid place-items-center text-[7px] font-bold text-white" style={{ background: pl.color }}>{pl.short}</span>
+                      <PlatformLogo platform={pid} size={16} />
                       {pl.name}
                       <span className="w-[7px] h-[7px] rounded-full" style={{ background: live ? 'var(--st-good)' : 'var(--st-critical)' }} />
                     </span>

@@ -29,13 +29,16 @@ export function Button({
   return <button type="button" className={`${base} ${styles} ${className}`} {...rest}>{children}</button>
 }
 
-export function IconButton({ children, label, className = '', ...rest }: { children: ReactNode; label: string; className?: string; [k: string]: any }) {
+export function IconButton({ children, label, chrome = false, className = '', ...rest }: { children: ReactNode; label: string; chrome?: boolean; className?: string; [k: string]: any }) {
+  const tone = chrome
+    ? 'border-[var(--chrome-line-2)] bg-[var(--chrome-hover)] text-[var(--chrome-ink-2)] hover:text-[var(--chrome-ink)] hover:bg-[var(--chrome-active-bg)]'
+    : 'border-[var(--line-2)] bg-[var(--surface)] text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]'
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
-      className={`grid place-items-center w-[34px] h-[34px] rounded-[8px] border border-[var(--line-2)] bg-[var(--surface)] text-[var(--ink-2)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] transition-colors ${className}`}
+      className={`grid place-items-center w-[34px] h-[34px] rounded-[8px] border transition-colors ${tone} ${className}`}
       {...rest}
     >
       {children}

@@ -13,7 +13,9 @@ import {
 } from '@/lib/social'
 import { compact } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
+import { useWorkspace } from '@/context/workspace'
 import { Card, Stat, Segmented, Button, SectionTitle, SeverityDot, Chip } from '@/components/ui/kit'
+import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { Reveal } from '@/components/ui/disclosure'
 
 const TOOLTIP = { background: 'var(--surface)', border: '1px solid var(--line-2)', borderRadius: 10, fontSize: 12, color: 'var(--ink)', boxShadow: 'var(--shadow-pop)' } as any
@@ -23,7 +25,8 @@ const CAT_LABEL: Record<SocialRec['category'], string> = { cadence: 'Cadence', f
 
 export default function SocialAccountDetail() {
   const { id = '' } = useParams()
-  const { range, setRange } = useApp()
+  const { range, setRange, theme } = useApp()
+  const { brand } = useWorkspace()
   const navigate = useNavigate()
   const account = getSocialAccount(id)
   const loading = useLoading([id, range], 420)
@@ -43,6 +46,12 @@ export default function SocialAccountDetail() {
   const topPosts = [...account.posts].sort((a, b) => b.reach * b.engagementRate - a.reach * a.engagementRate).slice(0, 6)
   const trend = account.engagementDaily.slice(-30).map((v, i) => ({ d: i, v: +v.toFixed(1) }))
   const reachTrend = account.reachDaily.slice(-30).map((v, i) => ({ d: i, v: Math.round(v) }))
+  // Charts follow the active Social brand: the highlight for engagement, the
+  // navigation colour for reach (resolved to real hex so SVG strokes apply).
+  const engColor = brand.social.accent
+  const reachColor = brand.social.base ?? brand.social.accent
+  const gridColor = theme === 'dark' ? '#262a31' : '#e7e9ee'
+  const axisColor = theme === 'dark' ? '#737a88' : '#98a2b3'
 
   return (
     <div className="flex flex-col gap-5">
@@ -101,7 +110,7 @@ export default function SocialAccountDetail() {
             return (
               <Card key={c.platform} className="p-4">
                 <div className="flex items-center gap-2 mb-2.5">
-                  <span className="w-6 h-6 rounded-[6px] grid place-items-center text-[9px] font-bold text-white" style={{ background: pl.color }}>{pl.short}</span>
+                  <PlatformLogo platform={c.platform} size={24} />
                   <span className="text-[13px] font-semibold">{pl.name}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-y-2 text-[12px]">
@@ -120,8 +129,8 @@ export default function SocialAccountDetail() {
       <Reveal delay={0.12}>
         <Card className="p-4">
           <div className="grid md:grid-cols-2 gap-5">
-            <TrendChart title="Engagement rate / day" data={trend} color="var(--accent)" fmt={(v) => v + '%'} />
-            <TrendChart title="Reach / day" data={reachTrend} color="var(--s-blue)" fmt={(v) => compact(v)} />
+            <TrendChart title="Engagement rate / day" data={trend} color={engColor} grid={gridColor} axis={axisColor} fmt={(v) => v + '%'} />
+            <TrendChart title="Reach / day" data={reachTrend} color={reachColor} grid={gridColor} axis={axisColor} fmt={(v) => compact(v)} />
           </div>
         </Card>
       </Reveal>
@@ -162,11 +171,10 @@ function Kv({ k, v }: { k: string; v: string }) {
 }
 
 function PostCard({ p }: { p: Post }) {
-  const pl = socialPlatform(p.platform)
   return (
     <Card className="p-4 flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
-        <span className="w-5 h-5 rounded-[5px] grid place-items-center text-[8px] font-bold text-white flex-none" style={{ background: pl.color }}>{pl.short}</span>
+        <PlatformLogo platform={p.platform} size={20} />
         <span className="text-[11px] font-semibold text-[var(--ink-2)]">{POST_TYPE_LABEL[p.type]}</span>
         <span className="ml-auto text-[11px] text-[var(--muted)]">{p.daysAgo}d ago</span>
       </div>
@@ -186,17 +194,17 @@ function PostCard({ p }: { p: Post }) {
   )
 }
 
-function TrendChart({ title, data, color, fmt }: { title: string; data: { d: number; v: number }[]; color: string; fmt?: (v: number) => string }) {
-  const gid = 'st' + color.replace(/\W/g, '')
+function TrendChart({ title, data, color, grid, axis, fmt }: { title: string; data: { d: number; v: number }[]; color: string; grid: string; axis: string; fmt?: (v: number) => string }) {
+  const gid = 'st' + title.replace(/\W/g, '')
   return (
     <div>
       <div className="eyebrow mb-2">{title}</div>
       <ResponsiveContainer width="100%" height={170}>
         <ComposedChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 4 }}>
           <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity={0.24} /><stop offset="1" stopColor={color} stopOpacity={0} /></linearGradient></defs>
-          <CartesianGrid stroke="var(--line)" vertical={false} />
-          <XAxis dataKey="d" tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval={5} tickFormatter={(d) => `${30 - d}d`} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} width={44} tickFormatter={(v) => (fmt ? fmt(v) : String(v))} />
+          <CartesianGrid stroke={grid} vertical={false} />
+          <XAxis dataKey="d" tick={{ fontSize: 11, fill: axis }} axisLine={false} tickLine={false} interval={5} tickFormatter={(d) => `${30 - d}d`} />
+          <YAxis tick={{ fontSize: 11, fill: axis }} axisLine={false} tickLine={false} width={44} tickFormatter={(v) => (fmt ? fmt(v) : String(v))} />
           <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [fmt ? fmt(v) : v, title.split(' /')[0]]} labelFormatter={(d) => `${30 - (d as number)} days ago`} />
           <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2.2} fill={`url(#${gid})`} isAnimationActive={false} />
         </ComposedChart>

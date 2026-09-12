@@ -10,6 +10,7 @@ import { RANGES, type RangeId } from '@/lib/data'
 import { SOCIAL_ACCOUNTS, getSocialAccount, socialMetrics, socialRecsFor, socialPlatform, POST_TYPE_LABEL } from '@/lib/social'
 import { compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
+import { PlatformLogo } from '@/components/social/PlatformLogo'
 
 type SectionKey = 'headline' | 'channels' | 'posts' | 'summary'
 const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
@@ -107,7 +108,7 @@ export default function SocialReports() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)] mb-3">
-                {brand.logo ? <img src={brand.logo} alt="" className="w-[22px] h-[22px] rounded-[6px] object-cover" /> : <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
+                {brand.logo ? <img src={brand.logo} alt="" className="h-[24px] max-w-[120px] object-contain object-left" /> : <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
                 <span className="font-semibold">{brand.agencyName}</span>
               </div>
               <div className="eyebrow" style={{ color: account.color }}>{account.niche} · {account.location}</div>
@@ -120,7 +121,7 @@ export default function SocialReports() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-5 border-t border-[var(--line)]">
             <Meta label="Prepared for" value={account.name} />
             <Meta label="Reporting period" value={period} />
-            <Meta label="Platforms" value={account.platforms.map((p) => socialPlatform(p).short).join(' · ')} />
+            <Meta label="Platforms" value={account.platforms.map((p) => socialPlatform(p).name).join(' · ')} />
             <Meta label="Prepared by" value={brand.agencyName} />
           </div>
 
@@ -144,7 +145,7 @@ export default function SocialReports() {
                     <tbody>
                       {account.channels.map((c) => { const pl = socialPlatform(c.platform); return (
                         <tr key={c.platform} className="border-b border-[var(--line)]">
-                          <td className="py-2.5 font-medium"><span className="inline-flex items-center gap-2"><span className="w-5 h-5 rounded-[5px] grid place-items-center text-[8px] font-bold text-white" style={{ background: pl.color }}>{pl.short}</span>{pl.name}</span></td>
+                          <td className="py-2.5 font-medium"><span className="inline-flex items-center gap-2"><PlatformLogo platform={c.platform} size={20} />{pl.name}</span></td>
                           <td className="py-2.5 text-right mono">{compact(c.followers)}</td>
                           <td className="py-2.5 text-right mono">{compact(c.reach)}</td>
                           <td className="py-2.5 text-right mono">{c.engagementRate}%</td>
@@ -160,13 +161,13 @@ export default function SocialReports() {
             {sections.posts && (
               <Section n={active.findIndex((s) => s.key === 'posts') + 1} title="Top posts" color={account.color}>
                 <div className="flex flex-col gap-2.5">
-                  {topPosts.map((p) => { const pl = socialPlatform(p.platform); return (
+                  {topPosts.map((p) => (
                     <div key={p.id} className="flex items-center gap-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3.5 py-2.5">
-                      <span className="w-6 h-6 rounded-[6px] grid place-items-center text-[8px] font-bold text-white flex-none" style={{ background: pl.color }}>{pl.short}</span>
+                      <PlatformLogo platform={p.platform} size={24} />
                       <div className="min-w-0 flex-1"><div className="text-[12.5px] font-medium truncate">{p.caption}</div><div className="text-[11px] text-[var(--muted)]">{POST_TYPE_LABEL[p.type]} · {p.daysAgo}d ago</div></div>
                       <div className="text-right text-[11.5px]"><div className="mono font-semibold">{compact(p.reach)} reach</div><div className="text-[var(--muted)]">{p.engagementRate}% ER</div></div>
                     </div>
-                  )})}
+                  ))}
                 </div>
               </Section>
             )}
