@@ -6,6 +6,26 @@ from you. Nothing in the app's data logic is built against these choices yet, so
 they are cheap to change now and expensive to change later. Mark each open
 decision and I will build to it.
 
+## Decisions (locked)
+
+- **Auth:** email magic link, via Resend, with a dev transport that logs the link
+  to the console so it builds and tests without an email provider. Server
+  sessions in an httpOnly cookie.
+- **First integration:** Meta (Facebook + Instagram) at M2.
+- **Domains:** `app.tinashebenson.com` (product) and `api.tinashebenson.com`
+  (this API). Demo stays on `demo.tinashebenson.com`.
+- **Deployment:** demo stays on Vercel (sample data); product is a separate
+  Railway deployment on real data. One frontend, an env flag switches the
+  `lib/api.ts` seam.
+- **Tenancy:** multi-tenant, pooled. A `workspace` is the tenant boundary; every
+  data row carries a `workspace_id`; users reach a workspace only via a
+  `membership`. Schema shipped as proposed below.
+
+**M1 is built and verified** (magic-link auth, multi-tenant workspaces,
+`/api/me`, migrations). Outstanding from you, at deploy/M2 time only: a Meta
+developer app (App ID + Secret) and DNS for the two subdomains; a Resend API key
+when you want real emails instead of the dev console.
+
 ## 1. The shape of the thing
 
 Two deployments, one frontend codebase:
@@ -85,9 +105,11 @@ tune to each platform's rate limits.
 ## 6. Milestones
 
 1. **M0 — skeleton (done):** service boots on Railway, `/api/health` green,
-   Postgres attachable. This commit.
-2. **M1 — auth + workspace:** chosen login, `users` / `workspaces` /
-   `memberships`, `/api/me`. Frontend seat picker becomes real login behind the flag.
+   Postgres attachable.
+2. **M1 — auth + workspace (done):** magic-link login, `users` / `workspaces` /
+   `memberships` / `sessions`, `/api/me`, migrations on boot. Verified end to end
+   against Postgres. Frontend seat picker becomes a real login behind the flag
+   (that wiring is a frontend task, tracked for when the product build turns on).
 3. **M2 — Meta connect:** OAuth start/callback, `platform_connections`, token
    storage, one manual metrics pull for a connected IG/FB account.
 4. **M3 — sync worker + real Social face:** scheduled pulls populate

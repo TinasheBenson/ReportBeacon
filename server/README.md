@@ -33,12 +33,24 @@ npm run dev               # http://localhost:8080/api/health
 The Vercel demo stays as-is. Point the product frontend at this service with a
 `VITE_API_BASE` env var once the data endpoints are live.
 
-## Endpoint surface
+## Endpoints
 
-Mirrors `src/lib/api.ts`. All data routes are `501` until built:
+Live now (M1):
 
-- `GET /api/health` — live now.
-- `GET /api/clients`, `GET /api/clients/:id`
+- `GET /api/health` — status, database and email transport.
+- `POST /api/auth/request` — `{ email }`, sends a magic link (dev: logged to console).
+- `GET /api/auth/callback?token=…` — verifies, sets the session cookie, redirects to the app.
+- `POST /api/auth/logout` — ends the session.
+- `GET /api/me` — the signed-in user and their workspaces (401 when signed out).
+
+Stubbed `501` until M2 (real Meta data):
+
 - `GET /api/social/accounts`, `GET /api/social/accounts/:id`
-- `GET /api/alerts`
-- `GET /api/connect/meta/start`, `GET /api/connect/meta/callback` — first real integration.
+- `GET /api/connect/meta/start`, `GET /api/connect/meta/callback`
+
+## Database
+
+Schema lives in `migrations/*.sql`; `runMigrations()` runs on boot (and
+`npm run migrate` runs it standalone). Multi-tenant: a `workspace` is the tenant
+boundary and every data row carries a `workspace_id`. Auth is magic-link with
+server sessions; only hashes of link tokens and session tokens are stored.
