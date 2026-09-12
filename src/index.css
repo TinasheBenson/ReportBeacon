@@ -155,6 +155,20 @@
   }
 }
 
+/* Scrollbars: keep scrolling by wheel, touch and keyboard, but hide the visible
+   bar everywhere — the window on the landing and console, the nav rail, and any
+   overflow container (tables, dialogs). Cross-browser: Firefox, legacy Edge and
+   all WebKit/Blink. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 @layer utilities {
   .num { font-variant-numeric: tabular-nums; }
   .mono {
@@ -169,13 +183,10 @@
     text-transform: uppercase;
     color: var(--muted);
   }
-  .clip-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-  .clip-scroll::-webkit-scrollbar-thumb {
-    background: var(--line-2);
-    border-radius: 999px;
-    border: 3px solid var(--surface);
-  }
-  .clip-scroll::-webkit-scrollbar-track { background: transparent; }
+  /* .clip-scroll historically styled a visible bar; scrollbars are now hidden
+     app-wide (see the global rule below), so this just keeps scroll behaviour. */
+  .clip-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+  .clip-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
   /* Hover lift for interactive cards */
   .lift { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
