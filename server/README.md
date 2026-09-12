@@ -43,10 +43,14 @@ Live now (M1):
 - `POST /api/auth/logout` — ends the session.
 - `GET /api/me` — the signed-in user and their workspaces (401 when signed out).
 
-Stubbed `501` until M2 (real Meta data):
+M2 (Meta connect — live when the Meta app is set, stub otherwise):
 
-- `GET /api/social/accounts`, `GET /api/social/accounts/:id`
-- `GET /api/connect/meta/start`, `GET /api/connect/meta/callback`
+- `GET /api/connect/meta/start` — begins the connect flow (CSRF-signed state).
+- `GET /api/connect/meta/callback` — exchanges the code, imports accounts, redirects.
+- `GET /api/social/accounts` — the workspace's imported accounts with a per-channel summary.
+
+Without `META_APP_ID` / `META_APP_SECRET` the flow imports sample accounts so it
+is testable now; see `META_SETUP.md` to go live.
 
 ## Database
 

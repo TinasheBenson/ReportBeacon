@@ -10,10 +10,12 @@ import { parse as parseCookie, serialize as serializeCookie } from 'cookie'
 import { dbConfigured, dbHealthy } from './db.js'
 import { runMigrations } from './migrate.js'
 import {
-  requestMagicLink, verifyMagicLink, sessionUser, endSession, meFor,
+  requestMagicLink, verifyMagicLink, sessionUser, endSession, meFor, firstWorkspaceId,
   SESSION_TTL_SECONDS, type SessionUser,
 } from './auth.js'
 import { emailConfigured } from './email.js'
+import { metaEnabled, startAuthUrl, importFromMeta, listAccounts } from './meta.js'
+import { signState, verifyState } from './crypto.js'
 
 const app = express()
 app.disable('x-powered-by')
@@ -103,14 +105,45 @@ app.get('/api/me', requireAuth, async (req: Request, res: Response) => {
   res.json({ user: req.user, workspaces })
 })
 
-// ── data endpoints (M2+) ─────────────────────────────────────────────────────
-const NOT_YET = (name: string) => (_req: Request, res: Response) =>
-  res.status(501).json({ error: 'not_implemented', endpoint: name, note: 'See server/SCOPE.md' })
+// ── Meta connect (M2) ────────────────────────────────────────────────────────
+app.get('/api/connect/meta/start', requireAuth, async (req: Request, res: Response) => {
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.status(400).json({ error: 'no workspace' })
+  const state = signState({ w: workspaceId, u: req.user!.id })
+  res.redirect(startAuthUrl(state))
+})
 
-app.get('/api/social/accounts', requireAuth, NOT_YET('GET /api/social/accounts'))
-app.get('/api/social/accounts/:id', requireAuth, NOT_YET('GET /api/social/accounts/:id'))
-app.get('/api/connect/meta/start', requireAuth, NOT_YET('GET /api/connect/meta/start'))
-app.get('/api/connect/meta/callback', NOT_YET('GET /api/connect/meta/callback'))
+// Stub consent screen (only reachable when no real Meta app is configured).
+app.get('/api/connect/meta/mock', (req: Request, res: Response) => {
+  const state = String(req.query.state ?? '')
+  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>Authorize (mock)</title>
+    <div style="font-family:system-ui;max-width:420px;margin:80px auto;padding:24px;border:1px solid #e5e5ef;border-radius:14px">
+      <h2 style="margin:0 0 8px">Connect Meta <span style="font:600 11px system-ui;color:#fff;background:#c2410c;padding:2px 7px;border-radius:6px;vertical-align:middle">MOCK</span></h2>
+      <p style="color:#556;font-size:14px">No Meta app is configured, so this stands in for Facebook's consent screen. Authorizing imports sample connected accounts.</p>
+      <a href="/api/connect/meta/callback?code=mock-code&state=${encodeURIComponent(state)}"
+         style="display:inline-block;background:#1877f2;color:#fff;text-decoration:none;font:600 14px system-ui;padding:10px 16px;border-radius:8px">Authorize ReportBeacon</a>
+    </div>`)
+})
+
+app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
+  const state = verifyState<{ w: string }>(String(req.query.state ?? ''))
+  const code = String(req.query.code ?? '')
+  if (!state || !code) return res.redirect(`${APP_URL}/app/social/integrations?connect=invalid`)
+  try {
+    const { accounts } = await importFromMeta(state.w, code)
+    res.redirect(`${APP_URL}/app/social/integrations?connected=meta&accounts=${accounts}`)
+  } catch (err) {
+    console.error('meta import:', err)
+    res.redirect(`${APP_URL}/app/social/integrations?connect=error`)
+  }
+})
+
+// ── social data (reads the workspace's imported accounts) ─────────────────────
+app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response) => {
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.json({ accounts: [] })
+  res.json({ accounts: await listAccounts(workspaceId), source: metaEnabled ? 'meta' : 'stub' })
+})
 
 const port = Number(process.env.PORT) || 8080
 runMigrations()

@@ -110,8 +110,14 @@ tune to each platform's rate limits.
    `memberships` / `sessions`, `/api/me`, migrations on boot. Verified end to end
    against Postgres. Frontend seat picker becomes a real login behind the flag
    (that wiring is a frontend task, tracked for when the product build turns on).
-3. **M2 — Meta connect:** OAuth start/callback, `platform_connections`, token
-   storage, one manual metrics pull for a connected IG/FB account.
+3. **M2 — Meta connect (built; stub-verified, live pending your app):** OAuth
+   start/callback with a CSRF-signed state, `platform_connections` with
+   AES-256-GCM encrypted tokens, an import that lands accounts + channels + a
+   seeded 60-day history, and `GET /api/social/accounts` reading it back,
+   workspace-scoped. Runs in a stub (sample accounts) until META_APP_ID /
+   META_APP_SECRET are set; the real Graph path is written and needs a live app
+   to verify. See `META_SETUP.md`. Remaining live-only piece: swap the seeded
+   metrics for real Graph insights.
 4. **M3 — sync worker + real Social face:** scheduled pulls populate
    `metrics_daily` / `posts`; `lib/api.ts` social reads switch to the API for a
    product build. Demo untouched.

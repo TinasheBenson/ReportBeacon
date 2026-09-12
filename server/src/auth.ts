@@ -106,4 +106,14 @@ export async function meFor(userId: string) {
   }))
 }
 
+/** The user's primary workspace id (their earliest membership). A workspace
+ *  switcher can replace this later; for now each user has one. */
+export async function firstWorkspaceId(userId: string): Promise<string | null> {
+  const r = await db().query(
+    'select workspace_id from memberships where user_id=$1 order by created_at asc limit 1',
+    [userId],
+  )
+  return r.rows[0]?.workspace_id ?? null
+}
+
 export const SESSION_TTL_SECONDS = SESSION_TTL_DAYS * 24 * 60 * 60
