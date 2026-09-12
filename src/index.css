@@ -34,6 +34,8 @@
   --chrome-hover: #f1f2f5;
   --chrome-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
   --chrome-active-ink: var(--accent);
+  --chrome-badge-bg: var(--accent);
+  --chrome-badge-ink: #ffffff;
   --good: #067647;
   --bad: #b42318;
   --st-good: #0ca30c;
@@ -71,6 +73,8 @@
     --chrome-hover: #1f232b;
     --chrome-active-bg: color-mix(in srgb, var(--accent) 24%, transparent);
     --chrome-active-ink: var(--accent);
+    --chrome-badge-bg: var(--accent);
+    --chrome-badge-ink: #14121f;
     --good: #55d38c;
     --bad: #f97066;
     --st-good: #17b917;

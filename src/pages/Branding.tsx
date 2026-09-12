@@ -32,12 +32,14 @@ function anchors(light: boolean) {
     ? { surface: '#ffffff', plane: '#f7f8fa', ink: '#101828', muted: '#98a2b3', line: '#e7e9ee' }
     : { surface: '#16181d', plane: '#0c0d10', ink: '#f2f4f7', muted: '#737a88', line: '#262a31' }
 }
-// The nav strip style: a brand base paints it (white text); null keeps it neutral.
+// The nav strip: a brand base gives a deep, brand-tinted rail (off-white text);
+// null keeps it neutral. Mirrors applyFace in the Shell.
 function navStyle(base: string | null, light: boolean): React.CSSProperties {
   const a = anchors(light)
   if (!base) return { background: a.surface, color: a.ink, borderColor: a.line }
-  const bg = light ? base : `color-mix(in srgb, ${base} 64%, #0b0d12)`
-  return { background: bg, color: '#fff', borderColor: 'rgba(255,255,255,0.16)' }
+  const top = light ? `color-mix(in srgb, ${base} 40%, #0a1020)` : `color-mix(in srgb, ${base} 52%, #0b1226)`
+  const bottom = light ? `color-mix(in srgb, ${base} 30%, #0a1020)` : `color-mix(in srgb, ${base} 42%, #0b1226)`
+  return { backgroundImage: `linear-gradient(180deg, ${top}, ${bottom})`, color: 'rgba(255,255,255,0.94)', borderColor: 'rgba(255,255,255,0.09)' }
 }
 
 export default function Branding() {
@@ -64,10 +66,14 @@ export default function Branding() {
   const a = anchors(light)
   const nav = navStyle(pal.base, light)
   const onBrand = !!pal.base
+  // The active item is the one saturated element: a bright brand pill.
   const activeItem: React.CSSProperties = onBrand
-    ? { background: 'rgba(255,255,255,0.18)', color: '#fff' }
+    ? { background: pal.base!, color: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }
     : { background: `color-mix(in srgb, ${pal.accent} 14%, transparent)`, color: pal.accent }
-  const mutedOnNav = onBrand ? 'rgba(255,255,255,0.62)' : a.muted
+  const mutedOnNav = onBrand ? 'rgba(255,255,255,0.54)' : a.muted
+  const badge: React.CSSProperties = brand.logo
+    ? { background: '#fff' }
+    : onBrand ? { background: pal.base!, color: '#fff' } : { background: pal.accent, color: '#fff' }
 
   return (
     <Reveal className="grid lg:grid-cols-[1fr_380px] gap-6 max-w-[1000px]">
@@ -151,7 +157,7 @@ export default function Branding() {
             {/* Nav rail */}
             <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none overflow-hidden" style={onBrand ? { background: '#fff', color: pal.base! } : { background: pal.accent, color: '#fff' }}>
+                <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none overflow-hidden" style={badge}>
                   {brand.logo ? <img src={brand.logo} alt="" className="max-w-[18px] max-h-[18px] object-contain" /> : brandMonogram}
                 </span>
                 <span className="text-[10px] font-bold truncate">{brand.agencyName}</span>

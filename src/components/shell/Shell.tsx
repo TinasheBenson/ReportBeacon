@@ -20,27 +20,40 @@ import { SOCIAL_ACCOUNTS } from '@/lib/social'
 const CHROME_KEYS = [
   '--chrome', '--chrome-2', '--chrome-ink', '--chrome-ink-2', '--chrome-muted',
   '--chrome-line', '--chrome-line-2', '--chrome-hover', '--chrome-active-bg', '--chrome-active-ink',
+  '--chrome-badge-bg', '--chrome-badge-ink',
 ] as const
 
+// A branded face frames the app with a deep, brand-tinted rail (the endorsed
+// "dark sidebar, light content" pattern) rather than a flat wall of saturated
+// colour. The hue reads clearly — a blue base gives a navy rail — but the
+// surface is calm; the bright brand colour is spent only where it means
+// something: the active item and the logo. Text is soft off-white, never pure
+// white, to avoid halation.
 function applyFace(pal: Pal, theme: 'light' | 'dark') {
   const root = document.documentElement.style
   root.setProperty('--accent', pal.accent)
   if (!pal.base) { for (const k of CHROME_KEYS) root.removeProperty(k); return }
-  // In dark mode, seat the brand hue into the surrounding dark UI so it reads
-  // as chrome rather than a glowing block; in light mode use it at full strength.
-  const bg = theme === 'dark' ? `color-mix(in srgb, ${pal.base} 64%, #0b0d12)` : pal.base
-  const bg2 = theme === 'dark' ? `color-mix(in srgb, ${pal.base} 50%, #0b0d12)` : `color-mix(in srgb, ${pal.base} 90%, #000)`
+  const b = pal.base
+  // Light mode: a deep navy rail framing the white content. Dark mode: the
+  // content is already near-black, so the rail must sit *above* it — a medium,
+  // clearly-blue navy — to stay distinct and keep the brand identity.
+  const top = theme === 'dark' ? `color-mix(in srgb, ${b} 52%, #0b1226)` : `color-mix(in srgb, ${b} 40%, #0a1020)`
+  const bottom = theme === 'dark' ? `color-mix(in srgb, ${b} 42%, #0b1226)` : `color-mix(in srgb, ${b} 30%, #0a1020)`
   const set = (k: string, v: string) => root.setProperty(k, v)
-  set('--chrome', bg)
-  set('--chrome-2', bg2)
-  set('--chrome-ink', '#ffffff')
-  set('--chrome-ink-2', 'rgba(255,255,255,0.76)')
-  set('--chrome-muted', 'rgba(255,255,255,0.56)')
-  set('--chrome-line', 'rgba(255,255,255,0.15)')
-  set('--chrome-line-2', 'rgba(255,255,255,0.24)')
-  set('--chrome-hover', 'rgba(255,255,255,0.12)')
-  set('--chrome-active-bg', 'rgba(255,255,255,0.18)')
+  set('--chrome', top)
+  set('--chrome-2', bottom)
+  set('--chrome-ink', 'rgba(255,255,255,0.94)')
+  set('--chrome-ink-2', 'rgba(255,255,255,0.68)')
+  set('--chrome-muted', 'rgba(255,255,255,0.54)')
+  set('--chrome-line', 'rgba(255,255,255,0.09)')
+  set('--chrome-line-2', 'rgba(255,255,255,0.16)')
+  set('--chrome-hover', 'rgba(255,255,255,0.07)')
+  // The one saturated element: a bright brand pill for the active item.
+  set('--chrome-active-bg', b)
   set('--chrome-active-ink', '#ffffff')
+  // Logo / monogram tile: the bright brand colour, so it reads as the mark.
+  set('--chrome-badge-bg', b)
+  set('--chrome-badge-ink', '#ffffff')
 }
 function clearFace() {
   const root = document.documentElement.style
@@ -137,7 +150,7 @@ export default function Shell() {
 
       <div className="flex min-h-screen">
         <aside
-          className={`no-print fixed lg:sticky top-0 z-50 lg:z-auto h-screen flex flex-col bg-[var(--chrome)] text-[var(--chrome-ink-2)] border-r border-[var(--chrome-line)] transition-all duration-200 ${railWidth} w-[236px]
+          className={`no-print fixed lg:sticky top-0 z-50 lg:z-auto h-screen flex flex-col bg-[var(--chrome)] bg-[linear-gradient(180deg,var(--chrome),var(--chrome-2))] text-[var(--chrome-ink-2)] border-r border-[var(--chrome-line)] transition-all duration-200 ${railWidth} w-[236px]
             ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
         >
           <Rail collapsed={navCollapsed} alertCount={alertCount} nav1={nav1} nav2={NAV_2} home={home} face={face} onCloseMobile={() => setMobileNavOpen(false)} />
@@ -145,7 +158,7 @@ export default function Shell() {
           {/* Seat + collapse */}
           <div className="mt-auto border-t border-[var(--chrome-line)] p-2">
             <div className={`flex items-center gap-2.5 px-2 py-2 ${navCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold bg-[var(--chrome-active-bg)] text-[var(--chrome-ink)]">{seat?.initials ?? '-'}</span>
+              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold bg-[var(--chrome-line-2)] text-[var(--chrome-ink)]">{seat?.initials ?? '-'}</span>
               {!navCollapsed && (
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] font-semibold truncate text-[var(--chrome-ink)]">{seat?.name}</div>
@@ -203,7 +216,7 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
         {brand.logo
           ? <img src={brand.logo} alt="" className="w-[30px] h-[30px] rounded-[8px] object-contain bg-white p-[3px] flex-none" />
-          : <span className="w-[30px] h-[30px] rounded-[8px] grid place-items-center flex-none text-[12px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
+          : <span className="w-[30px] h-[30px] rounded-[8px] grid place-items-center flex-none text-[12px] font-bold" style={{ background: 'var(--chrome-badge-bg)', color: 'var(--chrome-badge-ink)' }}>{brandMonogram}</span>}
         {!collapsed && (
           <div className="min-w-0">
             <div className="font-bold text-[14.5px] tracking-[-0.01em] leading-tight truncate text-[var(--chrome-ink)]">{brand.agencyName}</div>
@@ -236,7 +249,7 @@ function NavGroup({ collapsed, label, items, alertCount }: {
             title={collapsed ? it.label : undefined}
             className={({ isActive }) =>
               `relative flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 my-[1px] text-[13.5px] font-medium border border-transparent transition-colors ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
-                isActive ? 'bg-[var(--chrome-active-bg)] text-[var(--chrome-active-ink)] font-semibold border-[var(--chrome-line-2)]' : 'text-[var(--chrome-ink-2)] hover:bg-[var(--chrome-hover)] hover:text-[var(--chrome-ink)]'
+                isActive ? 'bg-[var(--chrome-active-bg)] text-[var(--chrome-active-ink)] font-semibold border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.18)]' : 'text-[var(--chrome-ink-2)] hover:bg-[var(--chrome-hover)] hover:text-[var(--chrome-ink)]'
               }`
             }
           >
