@@ -9,9 +9,19 @@ import {
 } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { Logo } from '@/components/Logo'
+import { PlatformLogo } from '@/components/social/PlatformLogo'
+import type { SocialPlatformId } from '@/lib/social'
 
 const BOOK_A_CALL = 'https://www.tinashebenson.com/contact'
 const EASE = [0.16, 1, 0.3, 1] as const
+// The Social face preview uses the same blue identity the console shows.
+const SOCIAL_BLUE = '#2563eb'
+const SOCIAL_PLATFORMS: { id: SocialPlatformId; name: string; note: string }[] = [
+  { id: 'instagram', name: 'Instagram', note: 'Reach & engagement' },
+  { id: 'facebook', name: 'Facebook', note: 'Pages & posts' },
+  { id: 'tiktok', name: 'TikTok', note: 'Video views' },
+  { id: 'linkedin', name: 'LinkedIn', note: 'Company page' },
+]
 
 function Rise({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
@@ -59,7 +69,7 @@ export default function Landing() {
             Every client account you run, on one screen
           </h1>
           <p className="mt-5 text-[16px] md:text-[18px] text-[var(--ink-2)] max-w-[640px] mx-auto leading-relaxed">
-            ReportBeacon brings the ad, SEO, and analytics platforms your agency already runs into one console. Every metric you pull together for a client report, in one place, so your team stops stitching screenshots from a dozen tabs.
+            ReportBeacon brings the ad, social, SEO and analytics platforms your agency already runs into one console. Every metric you pull together for a client report, in one place, so your team stops stitching screenshots from a dozen tabs.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/app" className="inline-flex items-center gap-2 text-[15px] font-semibold px-5 py-3 rounded-[10px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
@@ -125,6 +135,39 @@ export default function Landing() {
           </Feature>
         </div>
       </section>
+
+      {/* Social band */}
+      <Rise>
+        <section className="mx-auto max-w-[1120px] px-5 py-4">
+          <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-8 md:p-12 shadow-[var(--shadow)] overflow-hidden">
+            <div className="grid md:grid-cols-[1.05fr_1fr] gap-8 md:gap-12 items-center">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.09em] mono" style={{ color: SOCIAL_BLUE }}>Social, in the same console</span>
+                <h2 className="mt-2.5 text-[26px] md:text-[32px] font-bold tracking-[-0.02em]">Run the social side too, not just paid</h2>
+                <p className="mt-3 text-[15px] text-[var(--ink-2)] leading-relaxed max-w-[520px]">
+                  Instagram, Facebook, TikTok and LinkedIn, side by side with the ad accounts. Reach and engagement across the roster, post performance, best time to post, and a client-ready report that carries the brand. Flip to the social face and the whole console shifts to a blue identity of its own.
+                </p>
+                <div className="mt-6">
+                  <Link to="/app/social" className="inline-flex items-center gap-2 text-[15px] font-semibold px-5 py-3 rounded-[10px] text-white hover:opacity-90 transition-opacity" style={{ background: SOCIAL_BLUE }}>
+                    <Play size={16} /> Open the social demo
+                  </Link>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {SOCIAL_PLATFORMS.map((p) => (
+                  <div key={p.id} className="flex items-center gap-2.5 rounded-[12px] border border-[var(--line)] bg-[var(--surface-2)] px-3.5 py-3">
+                    <PlatformLogo platform={p.id} size={30} />
+                    <div className="min-w-0">
+                      <div className="text-[13.5px] font-semibold leading-tight">{p.name}</div>
+                      <div className="text-[11.5px] text-[var(--muted)]">{p.note}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </Rise>
 
       {/* Try it band */}
       <Rise>

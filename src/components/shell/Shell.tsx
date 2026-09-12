@@ -158,7 +158,7 @@ export default function Shell() {
           {/* Seat + collapse */}
           <div className="mt-auto border-t border-[var(--chrome-line)] p-2">
             <div className={`flex items-center gap-2.5 px-2 py-2 ${navCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold bg-[var(--chrome-line-2)] text-[var(--chrome-ink)]">{seat?.initials ?? '-'}</span>
+              <span className="w-8 h-8 rounded-full grid place-items-center flex-none text-[12px] font-bold bg-[var(--chrome-hover)] text-[var(--chrome-ink)] border border-[var(--chrome-line-2)]">{seat?.initials ?? '-'}</span>
               {!navCollapsed && (
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] font-semibold truncate text-[var(--chrome-ink)]">{seat?.name}</div>
