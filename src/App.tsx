@@ -18,6 +18,11 @@ import Branding from '@/pages/Branding'
 import Automations from '@/pages/Automations'
 import AlertRules from '@/pages/AlertRules'
 import AcceptInvite from '@/pages/AcceptInvite'
+import SocialOverview from '@/pages/social/SocialOverview'
+import SocialAccountDetail from '@/pages/social/SocialAccountDetail'
+import SocialRecommendations from '@/pages/social/SocialRecommendations'
+import SocialReports from '@/pages/social/SocialReports'
+import SocialIntegrations from '@/pages/social/SocialIntegrations'
 
 export default function App() {
   const { theme, seatId } = useApp()
@@ -34,6 +39,11 @@ export default function App() {
             <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="alerts" element={<Alerts />} />
             <Route path="alert-rules" element={<AlertRules />} />
+            <Route path="social" element={<SocialOverview />} />
+            <Route path="social/clients/:id" element={<SocialAccountDetail />} />
+            <Route path="social/recommendations" element={<SocialRecommendations />} />
+            <Route path="social/reports" element={<SocialReports />} />
+            <Route path="social/integrations" element={<SocialIntegrations />} />
             <Route path="reports" element={<Reports />} />
             <Route path="automations" element={<Automations />} />
             <Route path="integrations" element={<Integrations />} />

@@ -7,12 +7,17 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { RANGES, SEATS, type RangeId } from '@/lib/data'
 
 type Theme = 'light' | 'dark'
+export type Face = 'performance' | 'social'
 export interface AIConfigState { key: string; model: string }
 
 interface AppState {
   theme: Theme
   toggleTheme: () => void
   setTheme: (t: Theme) => void
+
+  // Which face of the console is active when the workspace runs in "both" mode.
+  face: Face
+  setFace: (f: Face) => void
 
   seatId: string | null
   login: (id: string) => void
@@ -55,6 +60,10 @@ function readSeat(): string | null {
   const v = readLS<unknown>('rb-seat', null)
   return typeof v === 'string' && SEATS.some((s) => s.id === v) ? v : null
 }
+function readFace(): Face {
+  const v = readLS<unknown>('rb-face', 'performance')
+  return v === 'social' ? 'social' : 'performance'
+}
 function readAi(): AIConfigState {
   const v = readLS<unknown>('rb-ai', null)
   if (v && typeof v === 'object' && typeof (v as any).key === 'string' && typeof (v as any).model === 'string') {
@@ -72,6 +81,7 @@ function initialTheme(): Theme {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme)
+  const [face, setFaceState] = useState<Face>(readFace)
   const [seatId, setSeatId] = useState<string | null>(readSeat)
   const [range, setRangeState] = useState<RangeId>(readRange)
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => readLS<boolean>('rb-nav', false))
@@ -87,6 +97,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     theme,
     toggleTheme: () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark')),
     setTheme: setThemeState,
+    face,
+    setFace: (f) => { setFaceState(f); writeLS('rb-face', f) },
     seatId,
     login: (id) => { setSeatId(id); writeLS('rb-seat', id) },
     signOut: () => { setSeatId(null); writeLS('rb-seat', null) },

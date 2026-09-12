@@ -2,14 +2,19 @@
  *  name, colour and logo. Changes apply live across the app. */
 import { toast } from 'sonner'
 import { Upload, Trash2, Check } from 'lucide-react'
-import { useWorkspace } from '@/context/workspace'
-import { Card, Button, SectionTitle } from '@/components/ui/kit'
+import { useWorkspace, type WorkspaceMode } from '@/context/workspace'
+import { Card, Button, SectionTitle, Segmented } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
 
 const PRESETS = ['#4a3aa7', '#2563eb', '#0d9488', '#16a34a', '#d97706', '#dc2626', '#db2777', '#7c3aed', '#334155', '#101828']
+const MODE_HINT: Record<WorkspaceMode, string> = {
+  performance: 'Ads, SEO and lead-gen reporting only.',
+  social: 'Social media reporting only.',
+  both: 'Both, with a Performance / Social switch in the top bar.',
+}
 
 export default function Branding() {
-  const { isAdmin, brand, brandMonogram, setBrand } = useWorkspace()
+  const { isAdmin, brand, brandMonogram, setBrand, mode, setMode } = useWorkspace()
 
   if (!isAdmin) {
     return <Card className="p-10 text-center text-[13px] text-[var(--muted)] max-w-[520px]">Branding is managed by the agency owner.</Card>
@@ -28,6 +33,13 @@ export default function Branding() {
     <Reveal className="grid lg:grid-cols-[1fr_360px] gap-6 max-w-[980px]">
       {/* Controls */}
       <div className="flex flex-col gap-4">
+        <Card className="p-5">
+          <SectionTitle>Reporting focus</SectionTitle>
+          <Segmented value={mode} onChange={(m) => { setMode(m); toast.success(`Focus set to ${m === 'both' ? 'both' : m}`) }} className="w-full"
+            options={[{ value: 'performance', label: 'Performance' }, { value: 'social', label: 'Social' }, { value: 'both', label: 'Both' }]} />
+          <div className="text-[11.5px] text-[var(--muted)] mt-2.5">{MODE_HINT[mode]}</div>
+        </Card>
+
         <Card className="p-5">
           <SectionTitle>Agency brand</SectionTitle>
           <label className="eyebrow">Agency name</label>

@@ -20,6 +20,8 @@ export type { LiveAlert }
 export type Member = Seat
 
 export interface Brand { agencyName: string; accent: string; logo: string | null }
+/** What the workspace reports on. 'both' shows a Performance/Social switch. */
+export type WorkspaceMode = 'performance' | 'social' | 'both'
 export type Freq = 'off' | 'weekly' | 'monthly'
 export interface Schedule { freq: Freq; recipient: string }
 export interface Invitation { id: string; email: string; role: RoleId; token: string; createdAt: string; status: 'pending' | 'accepted' }
@@ -39,6 +41,7 @@ interface Persisted {
   alertRules: AlertRule[]
   alertStatus: Record<string, { status: AlertStatus; at: string }> // alertId -> lifecycle
   invitations: Invitation[]
+  mode: WorkspaceMode
 }
 
 // Demo opens under a neutral placeholder brand so a prospect reads it as
@@ -69,6 +72,7 @@ function seed(): Persisted {
     alertRules: defaultRules(),
     alertStatus: {},
     invitations: [],
+    mode: 'both',
   }
 }
 
@@ -89,6 +93,7 @@ function load(): Persisted {
       alertRules: p.alertRules ?? base.alertRules,
       alertStatus: p.alertStatus ?? base.alertStatus,
       invitations: p.invitations ?? base.invitations,
+      mode: p.mode ?? base.mode,
     }
   } catch {
     return seed()
@@ -132,6 +137,7 @@ interface WorkspaceApi extends Persisted {
   disconnectProvider: (id: PlatformId) => void
   setBrand: (patch: Partial<Brand>) => void
   brandMonogram: string
+  setMode: (m: WorkspaceMode) => void
   setSchedule: (clientId: string, s: Schedule) => void
   scheduledFor: (m: Member) => { client: Account; schedule: Schedule; nextSend: Date }[]
   // alert rules + lifecycle
@@ -236,6 +242,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       setBrand: (p) => patch({ brand: { ...state.brand, ...p } }),
       brandMonogram: initials(state.brand.agencyName),
+      setMode: (m) => patch({ mode: m }),
       setSchedule: (clientId, s) => patch({ schedules: { ...state.schedules, [clientId]: s } }),
       scheduledFor: (m) => {
         const scope = seesAll(m) ? clients : clients.filter((c) => state.ownerById[c.id] === m.id)
