@@ -169,14 +169,27 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 }
 
+/* Palette morph: while switching face or editing brand colours, ease every
+   surface, border and text colour from the old palette to the new one so the
+   whole environment transforms rather than snapping. Applied only briefly, via
+   the .theme-morph class on <html>, so ordinary hovers stay snappy. */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-morph,
+  html.theme-morph * {
+    transition: background-color 0.5s ease, border-color 0.5s ease, color 0.35s ease, fill 0.35s ease, box-shadow 0.5s ease !important;
+  }
+}
+
 /* Print: only the report sheet shows, always on a light ground so the PDF is
    clean even when the operator exported from dark mode. */
 @media print {
-  :root {
-    --plane: #ffffff; --surface: #ffffff; --surface-2: #f7f8fa;
-    --ink: #101828; --ink-2: #5a6472; --muted: #98a2b3;
-    --line: #e7e9ee; --line-2: #d7dbe2;
-    --good: #067647; --bad: #b42318;
+  /* !important so a live ground tint set inline on <html> never bleeds into a
+     printed report — the PDF is always a clean light sheet. */
+  :root, :root[data-theme='dark'] {
+    --plane: #ffffff !important; --surface: #ffffff !important; --surface-2: #f7f8fa !important;
+    --ink: #101828 !important; --ink-2: #5a6472 !important; --muted: #98a2b3 !important;
+    --line: #e7e9ee !important; --line-2: #d7dbe2 !important;
+    --good: #067647 !important; --bad: #b42318 !important;
   }
   .no-print { display: none !important; }
   body { background: #fff; }

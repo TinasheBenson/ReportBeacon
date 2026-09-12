@@ -19,7 +19,15 @@ export type { LiveAlert }
 
 export type Member = Seat
 
-export interface Brand { agencyName: string; accent: string; logo: string | null }
+/** A face's palette: a ground/dashboard tint (null = the neutral default) and
+ *  a highlight/accent colour. */
+export interface Palette { base: string | null; accent: string }
+export interface Brand {
+  agencyName: string
+  logo: string | null
+  performance: Palette
+  social: Palette
+}
 /** What the workspace reports on. 'both' shows a Performance/Social switch. */
 export type WorkspaceMode = 'performance' | 'social' | 'both'
 export type Freq = 'off' | 'weekly' | 'monthly'
@@ -46,7 +54,34 @@ interface Persisted {
 
 // Demo opens under a neutral placeholder brand so a prospect reads it as
 // their own agency, then rebrands it live on the Branding screen.
-const DEFAULT_BRAND: Brand = { agencyName: 'Your Agency', accent: '#4a3aa7', logo: null }
+const DEFAULT_BRAND: Brand = {
+  agencyName: 'Your Agency', logo: null,
+  // Performance keeps the neutral ground (base null) with the indigo highlight.
+  performance: { base: null, accent: '#4a3aa7' },
+  // Social gets a distinct identity out of the box: a mint-green dashboard with
+  // an orange highlight, so switching faces changes the whole environment.
+  social: { base: '#12b886', accent: '#fd7e14' },
+}
+
+/** Accept both the current per-face shape and the older single-accent brand. */
+function migrateBrand(p: any): Brand {
+  if (!p || typeof p !== 'object') return DEFAULT_BRAND
+  const name = typeof p.agencyName === 'string' ? p.agencyName : DEFAULT_BRAND.agencyName
+  const logo = typeof p.logo === 'string' ? p.logo : null
+  if (p.performance && p.social) {
+    return {
+      agencyName: name, logo,
+      performance: { base: p.performance.base ?? null, accent: p.performance.accent ?? DEFAULT_BRAND.performance.accent },
+      social: { base: p.social.base ?? DEFAULT_BRAND.social.base, accent: p.social.accent ?? DEFAULT_BRAND.social.accent },
+    }
+  }
+  // Older shape: { agencyName, accent, logo }.
+  return {
+    agencyName: name, logo,
+    performance: { base: null, accent: typeof p.accent === 'string' ? p.accent : DEFAULT_BRAND.performance.accent },
+    social: { ...DEFAULT_BRAND.social },
+  }
+}
 
 /** When the next automatic send lands: weekly → next Monday, monthly → 1st, both at 9am. */
 export function nextSend(freq: Freq): Date {
@@ -88,7 +123,7 @@ function load(): Persisted {
       importedIds: p.importedIds ?? base.importedIds,
       archivedIds: p.archivedIds ?? base.archivedIds,
       connections: { ...base.connections, ...(p.connections ?? {}) },
-      brand: { ...base.brand, ...(p.brand ?? {}) },
+      brand: migrateBrand(p.brand),
       schedules: p.schedules ?? base.schedules,
       alertRules: p.alertRules ?? base.alertRules,
       alertStatus: p.alertStatus ?? base.alertStatus,
@@ -135,7 +170,8 @@ interface WorkspaceApi extends Persisted {
   restoreClient: (clientId: string) => void
   connectProvider: (id: PlatformId) => void
   disconnectProvider: (id: PlatformId) => void
-  setBrand: (patch: Partial<Brand>) => void
+  setBrand: (patch: Partial<Pick<Brand, 'agencyName' | 'logo'>>) => void
+  setPalette: (face: 'performance' | 'social', patch: Partial<Palette>) => void
   brandMonogram: string
   setMode: (m: WorkspaceMode) => void
   setSchedule: (clientId: string, s: Schedule) => void
@@ -241,6 +277,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       disconnectProvider: (id) => patch({ connections: { ...state.connections, [id]: false } }),
 
       setBrand: (p) => patch({ brand: { ...state.brand, ...p } }),
+      setPalette: (f, p) => patch({ brand: { ...state.brand, [f]: { ...state.brand[f], ...p } } }),
       brandMonogram: initials(state.brand.agencyName),
       setMode: (m) => patch({ mode: m }),
       setSchedule: (clientId, s) => patch({ schedules: { ...state.schedules, [clientId]: s } }),

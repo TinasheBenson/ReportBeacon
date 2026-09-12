@@ -107,7 +107,7 @@ export default function SocialReports() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)] mb-3">
-                {brand.logo ? <img src={brand.logo} alt="" className="w-[22px] h-[22px] rounded-[6px] object-cover" /> : <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: brand.accent }}>{brandMonogram}</span>}
+                {brand.logo ? <img src={brand.logo} alt="" className="w-[22px] h-[22px] rounded-[6px] object-cover" /> : <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
                 <span className="font-semibold">{brand.agencyName}</span>
               </div>
               <div className="eyebrow" style={{ color: account.color }}>{account.niche} · {account.location}</div>
