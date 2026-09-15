@@ -9,6 +9,7 @@ import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { ROLE_LABEL } from '@/lib/data'
 import { Button } from '@/components/ui/kit'
+import { useLogoTone, logoPlate } from '@/lib/useLogoTone'
 
 export default function AcceptInvite() {
   const [params] = useSearchParams()
@@ -17,6 +18,7 @@ export default function AcceptInvite() {
   const { invitations, acceptInvite, brand, brandMonogram } = useWorkspace()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const logoTone = useLogoTone(brand.logo)
 
   const inv = invitations.find((i) => i.token === token)
   const valid = inv && inv.status === 'pending'
@@ -39,7 +41,7 @@ export default function AcceptInvite() {
         <div className="flex items-center gap-2.5 mb-6">
           {brand.logo ? (
             <>
-              <img src={brand.logo} alt={brand.agencyName} className="h-11 max-w-[180px] object-contain bg-white rounded-[10px] px-2.5 py-1.5" />
+              <img src={brand.logo} alt={brand.agencyName} style={{ background: logoPlate(logoTone) }} className="h-11 max-w-[180px] object-contain rounded-[10px] px-2.5 py-1.5" />
               <span className="text-[11.5px] text-[var(--muted)]">Powered by ReportBeacon</span>
             </>
           ) : (

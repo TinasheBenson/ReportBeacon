@@ -11,6 +11,7 @@ import { SOCIAL_ACCOUNTS, getSocialAccount, socialMetrics, socialRecsFor, social
 import { compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
 import { PlatformLogo } from '@/components/social/PlatformLogo'
+import { useLogoTone } from '@/lib/useLogoTone'
 
 type SectionKey = 'headline' | 'channels' | 'posts' | 'summary'
 const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
@@ -34,6 +35,7 @@ export default function SocialReports() {
   const [params] = useSearchParams()
   const { range, setRange } = useApp()
   const { brand, brandMonogram, schedules, setSchedule, canWrite } = useWorkspace()
+  const logoPlated = useLogoTone(brand.logo) === 'light'
   const paramAcct = params.get('account') || ''
   const initial = SOCIAL_ACCOUNTS.some((a) => a.id === paramAcct) ? paramAcct : SOCIAL_ACCOUNTS[0].id
   const [accountId, setAccountId] = useState(initial)
@@ -108,7 +110,7 @@ export default function SocialReports() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)] mb-3">
-                {brand.logo ? <img src={brand.logo} alt={brand.agencyName} className="h-[30px] max-w-[180px] object-contain object-left" /> : <><span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span><span className="font-semibold">{brand.agencyName}</span></>}
+                {brand.logo ? <img src={brand.logo} alt={brand.agencyName} style={logoPlated ? { background: '#15161c' } : undefined} className={`h-[30px] max-w-[180px] object-contain object-left ${logoPlated ? 'rounded-[8px] px-2 py-1' : ''}`} /> : <><span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span><span className="font-semibold">{brand.agencyName}</span></>}
               </div>
               <div className="eyebrow" style={{ color: account.color }}>{account.niche} · {account.location}</div>
               <h1 className="text-[28px] md:text-[32px] font-bold tracking-[-0.02em] leading-tight mt-1">{title}</h1>

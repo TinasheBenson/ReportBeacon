@@ -10,6 +10,7 @@ import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type WorkspaceMode } from '@/context/workspace'
 import { Card, Button, SectionTitle, Segmented } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
+import { useLogoTone, logoPlate } from '@/lib/useLogoTone'
 
 const MODE_HINT: Record<WorkspaceMode, string> = {
   performance: 'Ads, SEO and lead-gen reporting only.',
@@ -47,6 +48,7 @@ export default function Branding() {
   const { isAdmin, brand, brandMonogram, setBrand, setPalette, mode, setMode } = useWorkspace()
   const [editFace, setEditFace] = useState<Face>('social')
   const light = theme === 'light'
+  const logoTone = useLogoTone(brand.logo)
 
   if (!isAdmin) {
     return <Card className="p-10 text-center text-[13px] text-[var(--muted)] max-w-[520px]">Branding is managed by the agency owner.</Card>
@@ -93,7 +95,7 @@ export default function Branding() {
             className="w-full mt-2 mb-5 bg-[var(--surface-2)] border border-[var(--line-2)] rounded-[8px] px-3 py-2 text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]" />
           <label className="eyebrow">Logo</label>
           <div className="flex items-center gap-3 mt-2.5">
-            <span className="w-16 h-16 rounded-[10px] grid place-items-center border border-[var(--line)] bg-[var(--surface-2)] overflow-hidden flex-none">
+            <span className="w-16 h-16 rounded-[10px] grid place-items-center border border-[var(--line)] overflow-hidden flex-none" style={{ background: brand.logo ? logoPlate(logoTone) : 'var(--surface-2)' }}>
               {brand.logo
                 ? <img src={brand.logo} alt="" className="max-w-[54px] max-h-[54px] object-contain" />
                 : <span className="text-[15px] font-bold text-white w-10 h-10 rounded-[8px] grid place-items-center" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
@@ -158,7 +160,7 @@ export default function Branding() {
             <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
               <div className="flex items-center gap-1.5 mb-1">
                 {brand.logo ? (
-                  <img src={brand.logo} alt={brand.agencyName} className="h-[26px] w-auto max-w-[84px] rounded-[5px] object-contain bg-white px-1 py-0.5" />
+                  <img src={brand.logo} alt={brand.agencyName} style={{ background: logoPlate(logoTone) }} className="h-[26px] w-auto max-w-[84px] rounded-[5px] object-contain px-1 py-0.5" />
                 ) : (
                   <>
                     <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none" style={badge}>{brandMonogram}</span>

@@ -11,6 +11,7 @@ import {
 import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
 import { SOCIAL_ACCOUNTS } from '@/lib/social'
+import { useLogoTone, logoPlate } from '@/lib/useLogoTone'
 
 // A face's brand colour ("base") paints the chrome — the nav rail and its
 // accents — while the content area stays on the neutral ground from index.css.
@@ -211,6 +212,7 @@ export default function Shell() {
 
 function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: { collapsed: boolean; alertCount: number; nav1: NavItem[]; nav2: NavItem[]; home: string; face: Face; onCloseMobile: () => void }) {
   const { brand, brandMonogram } = useWorkspace()
+  const logoTone = useLogoTone(brand.logo)
   return (
     <>
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
@@ -220,7 +222,8 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
           // The agency name is hidden — the logo is the identity.
           <img
             src={brand.logo} alt={brand.agencyName}
-            className={`rounded-[9px] object-contain bg-white flex-none ${collapsed ? 'w-[40px] h-[40px] p-1' : 'h-[42px] w-auto max-w-[168px] px-2.5 py-1.5'}`}
+            style={{ background: logoPlate(logoTone) }}
+            className={`rounded-[9px] object-contain flex-none ${collapsed ? 'w-[40px] h-[40px] p-1' : 'h-[42px] w-auto max-w-[168px] px-2.5 py-1.5'}`}
           />
         ) : (
           // No logo: the monogram plus the agency name.
