@@ -39,7 +39,7 @@ export default function AcceptInvite() {
         <div className="flex items-center gap-2.5 mb-6">
           {brand.logo ? (
             <>
-              <img src={brand.logo} alt={brand.agencyName} className="max-h-[48px] w-auto max-w-[200px] object-contain object-left" />
+              <img src={brand.logo} alt={brand.agencyName} className="h-[44px] w-auto max-w-[200px] object-contain object-left" />
               <span className="text-[11.5px] text-[var(--muted)]">Powered by ReportBeacon</span>
             </>
           ) : (

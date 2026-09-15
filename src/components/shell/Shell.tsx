@@ -219,7 +219,7 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
           // header — no plate. The agency name is hidden; the logo is the mark.
           <img
             src={brand.logo} alt={brand.agencyName}
-            className={`object-contain flex-none ${collapsed ? 'max-h-[42px] max-w-[46px] w-auto mx-auto' : 'max-h-[52px] w-auto max-w-[192px] object-left'}`}
+            className={`object-contain object-left flex-none ${collapsed ? 'h-[38px] w-auto max-w-[48px] mx-auto' : 'h-[46px] w-auto max-w-[190px]'}`}
           />
         ) : (
           // No logo: the monogram plus the agency name.
