@@ -11,6 +11,7 @@ import {
 import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
 import { SOCIAL_ACCOUNTS } from '@/lib/social'
+import { useTrimmedLogo } from '@/lib/logo'
 
 // A face's brand colour ("base") paints the chrome — the nav rail and its
 // accents — while the content area stays on the neutral ground from index.css.
@@ -211,6 +212,7 @@ export default function Shell() {
 
 function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: { collapsed: boolean; alertCount: number; nav1: NavItem[]; nav2: NavItem[]; home: string; face: Face; onCloseMobile: () => void }) {
   const { brand, brandMonogram } = useWorkspace()
+  const logoSrc = useTrimmedLogo(brand.logo)
   return (
     <>
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
@@ -218,7 +220,7 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
           // Logo present: it sits directly on the rail, large, filling the
           // header — no plate. The agency name is hidden; the logo is the mark.
           <img
-            src={brand.logo} alt={brand.agencyName}
+            src={logoSrc ?? brand.logo ?? undefined} alt={brand.agencyName}
             className={`object-contain object-left flex-none ${collapsed ? 'h-[38px] w-auto max-w-[48px] mx-auto' : 'h-[46px] w-auto max-w-[190px]'}`}
           />
         ) : (

@@ -13,6 +13,7 @@ import { useWorkspace, nextSend, type Freq } from '@/context/workspace'
 import { metricsFor, pacing, RANGES, type Account, type RangeId } from '@/lib/data'
 import { money, money2, num, compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
+import { useTrimmedLogo } from '@/lib/logo'
 
 type SectionKey = 'headline' | 'channels' | 'google' | 'search' | 'summary'
 const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
@@ -46,6 +47,7 @@ export default function Reports() {
   const [params] = useSearchParams()
   const { range, setRange } = useApp()
   const { me, accountsForSeat, getClient, brand, brandMonogram, schedules, setSchedule, canWrite } = useWorkspace()
+  const logoSrc = useTrimmedLogo(brand.logo) ?? brand.logo ?? undefined
   const scope = me ? accountsForSeat(me) : []
   const paramAcct = params.get('account') || ''
   const initial = scope.some((a) => a.id === paramAcct) ? paramAcct : (scope[0]?.id ?? '')
@@ -164,7 +166,7 @@ export default function Reports() {
             <div>
               <div className="flex items-center gap-2 text-[12px] text-[var(--ink-2)] mb-3">
                 {brand.logo
-                  ? <img src={brand.logo} alt={brand.agencyName} className="h-[34px] w-auto max-w-[200px] object-contain object-left" />
+                  ? <img src={logoSrc} alt={brand.agencyName} className="h-[34px] w-auto max-w-[200px] object-contain object-left" />
                   : <><span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold text-white" style={{ background: 'var(--accent)' }}>{brandMonogram}</span><span className="font-semibold">{brand.agencyName}</span></>}
               </div>
               <div className="eyebrow" style={{ color: account.color }}>{account.trade} · {account.location}</div>

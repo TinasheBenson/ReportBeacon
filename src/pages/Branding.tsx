@@ -11,6 +11,7 @@ import { useWorkspace, type WorkspaceMode } from '@/context/workspace'
 import { Card, Button, SectionTitle, Segmented } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
 import { useLogoTone, logoPlate } from '@/lib/useLogoTone'
+import { useTrimmedLogo } from '@/lib/logo'
 
 const MODE_HINT: Record<WorkspaceMode, string> = {
   performance: 'Ads, SEO and lead-gen reporting only.',
@@ -49,6 +50,7 @@ export default function Branding() {
   const [editFace, setEditFace] = useState<Face>('social')
   const light = theme === 'light'
   const logoTone = useLogoTone(brand.logo)
+  const logoSrc = useTrimmedLogo(brand.logo) ?? brand.logo ?? undefined
 
   if (!isAdmin) {
     return <Card className="p-10 text-center text-[13px] text-[var(--muted)] max-w-[520px]">Branding is managed by the agency owner.</Card>
@@ -97,7 +99,7 @@ export default function Branding() {
           <div className="flex items-center gap-3 mt-2.5">
             <span className="w-16 h-16 rounded-[10px] grid place-items-center border border-[var(--line)] overflow-hidden flex-none" style={{ background: brand.logo ? logoPlate(logoTone) : 'var(--surface-2)' }}>
               {brand.logo
-                ? <img src={brand.logo} alt="" className="max-w-[54px] max-h-[54px] object-contain" />
+                ? <img src={logoSrc} alt="" className="max-w-[54px] max-h-[54px] object-contain" />
                 : <span className="text-[15px] font-bold text-white w-10 h-10 rounded-[8px] grid place-items-center" style={{ background: 'var(--accent)' }}>{brandMonogram}</span>}
             </span>
             <div className="flex flex-col gap-2">
@@ -160,7 +162,7 @@ export default function Branding() {
             <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
               <div className="flex items-center gap-1.5 mb-1">
                 {brand.logo ? (
-                  <img src={brand.logo} alt={brand.agencyName} className="h-[28px] w-auto max-w-[96px] object-contain object-left" />
+                  <img src={logoSrc} alt={brand.agencyName} className="h-[28px] w-auto max-w-[96px] object-contain object-left" />
                 ) : (
                   <>
                     <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none" style={badge}>{brandMonogram}</span>

@@ -9,6 +9,7 @@ import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { ROLE_LABEL } from '@/lib/data'
 import { Button } from '@/components/ui/kit'
+import { useTrimmedLogo } from '@/lib/logo'
 
 export default function AcceptInvite() {
   const [params] = useSearchParams()
@@ -17,6 +18,7 @@ export default function AcceptInvite() {
   const { invitations, acceptInvite, brand, brandMonogram } = useWorkspace()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const logoSrc = useTrimmedLogo(brand.logo) ?? brand.logo ?? undefined
 
   const inv = invitations.find((i) => i.token === token)
   const valid = inv && inv.status === 'pending'
@@ -39,7 +41,7 @@ export default function AcceptInvite() {
         <div className="flex items-center gap-2.5 mb-6">
           {brand.logo ? (
             <>
-              <img src={brand.logo} alt={brand.agencyName} className="h-[44px] w-auto max-w-[200px] object-contain object-left" />
+              <img src={logoSrc} alt={brand.agencyName} className="h-[44px] w-auto max-w-[200px] object-contain object-left" />
               <span className="text-[11.5px] text-[var(--muted)]">Powered by ReportBeacon</span>
             </>
           ) : (
