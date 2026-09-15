@@ -162,7 +162,7 @@ export default function Branding() {
             <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
               <div className="flex items-center gap-1.5 mb-1">
                 {brand.logo ? (
-                  <img src={logoSrc} alt={brand.agencyName} className="h-[28px] w-auto max-w-[96px] object-contain object-left" />
+                  <img src={logoSrc} alt={brand.agencyName} className="h-[30px] w-auto max-w-[96px] object-contain mx-auto" />
                 ) : (
                   <>
                     <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none" style={badge}>{brandMonogram}</span>

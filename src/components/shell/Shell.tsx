@@ -217,12 +217,14 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
     <>
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
         {brand.logo ? (
-          // Logo present: it sits directly on the rail, large, filling the
+          // Logo present: it sits directly on the rail, large and centred in the
           // header — no plate. The agency name is hidden; the logo is the mark.
-          <img
-            src={logoSrc ?? brand.logo ?? undefined} alt={brand.agencyName}
-            className={`object-contain object-left flex-none ${collapsed ? 'h-[38px] w-auto max-w-[48px] mx-auto' : 'h-[46px] w-auto max-w-[190px]'}`}
-          />
+          <span className="flex-1 min-w-0 flex justify-center">
+            <img
+              src={logoSrc ?? brand.logo ?? undefined} alt={brand.agencyName}
+              className={`object-contain ${collapsed ? 'h-[40px] w-auto max-w-[48px]' : 'h-[48px] w-auto max-w-[188px]'}`}
+            />
+          </span>
         ) : (
           // No logo: the monogram plus the agency name.
           <>
