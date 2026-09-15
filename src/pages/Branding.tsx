@@ -157,10 +157,14 @@ export default function Branding() {
             {/* Nav rail */}
             <div className="w-[104px] p-2.5 flex flex-col gap-1.5 border-r" style={nav}>
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none overflow-hidden" style={badge}>
-                  {brand.logo ? <img src={brand.logo} alt="" className="max-w-[18px] max-h-[18px] object-contain" /> : brandMonogram}
-                </span>
-                <span className="text-[10px] font-bold truncate">{brand.agencyName}</span>
+                {brand.logo ? (
+                  <img src={brand.logo} alt={brand.agencyName} className="h-[26px] w-auto max-w-[84px] rounded-[5px] object-contain bg-white px-1 py-0.5" />
+                ) : (
+                  <>
+                    <span className="w-[22px] h-[22px] rounded-[6px] grid place-items-center text-[10px] font-bold flex-none" style={badge}>{brandMonogram}</span>
+                    <span className="text-[10px] font-bold truncate">{brand.agencyName}</span>
+                  </>
+                )}
               </div>
               <div className="rounded-[6px] px-2 py-1.5 text-[10.5px] font-semibold" style={activeItem}>Overview</div>
               {['Reports', 'Insights'].map((t) => <div key={t} className="rounded-[6px] px-2 py-1.5 text-[10.5px]" style={{ color: mutedOnNav }}>{t}</div>)}

@@ -214,14 +214,25 @@ function Rail({ collapsed, alertCount, nav1, nav2, home, face, onCloseMobile }: 
   return (
     <>
       <Link to={home} className={`flex items-center gap-2.5 px-4 pt-4 pb-4 ${collapsed ? 'lg:justify-center lg:px-0' : ''}`}>
-        {brand.logo
-          ? <img src={brand.logo} alt="" className="w-[30px] h-[30px] rounded-[8px] object-contain bg-white p-[3px] flex-none" />
-          : <span className="w-[30px] h-[30px] rounded-[8px] grid place-items-center flex-none text-[12px] font-bold" style={{ background: 'var(--chrome-badge-bg)', color: 'var(--chrome-badge-ink)' }}>{brandMonogram}</span>}
-        {!collapsed && (
-          <div className="min-w-0">
-            <div className="font-bold text-[14.5px] tracking-[-0.01em] leading-tight truncate text-[var(--chrome-ink)]">{brand.agencyName}</div>
-            <div className="text-[11px] text-[var(--chrome-muted)] mt-0.5">{face === 'social' ? 'Social · ReportBeacon' : 'Powered by ReportBeacon'}</div>
-          </div>
+        {brand.logo ? (
+          // Logo present: show it large, on a white plate so any logo (dark,
+          // light or transparent) stays legible on the light OR the dark rail.
+          // The agency name is hidden — the logo is the identity.
+          <img
+            src={brand.logo} alt={brand.agencyName}
+            className={`rounded-[9px] object-contain bg-white flex-none ${collapsed ? 'w-[40px] h-[40px] p-1' : 'h-[42px] w-auto max-w-[168px] px-2.5 py-1.5'}`}
+          />
+        ) : (
+          // No logo: the monogram plus the agency name.
+          <>
+            <span className="w-[34px] h-[34px] rounded-[9px] grid place-items-center flex-none text-[13px] font-bold" style={{ background: 'var(--chrome-badge-bg)', color: 'var(--chrome-badge-ink)' }}>{brandMonogram}</span>
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="font-bold text-[14.5px] tracking-[-0.01em] leading-tight truncate text-[var(--chrome-ink)]">{brand.agencyName}</div>
+                <div className="text-[11px] text-[var(--chrome-muted)] mt-0.5">{face === 'social' ? 'Social · ReportBeacon' : 'Powered by ReportBeacon'}</div>
+              </div>
+            )}
+          </>
         )}
         <IconButton chrome label="Close navigation" className="lg:hidden ml-auto" onClick={(e: any) => { e.preventDefault(); onCloseMobile() }}><X size={16} /></IconButton>
       </Link>

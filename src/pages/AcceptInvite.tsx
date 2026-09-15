@@ -37,13 +37,20 @@ export default function AcceptInvite() {
         <Link to="/" className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--muted)] hover:text-[var(--ink)] mb-5 transition-colors"><ArrowLeft size={14} /> Back to home</Link>
 
         <div className="flex items-center gap-2.5 mb-6">
-          {brand.logo
-            ? <img src={brand.logo} alt="" className="h-10 max-w-[160px] object-contain object-left" />
-            : <span className="w-9 h-9 rounded-[9px] grid place-items-center text-[13px] font-bold text-white" style={{ background: brand.performance.accent }}>{brandMonogram}</span>}
-          <div>
-            <div className="font-bold text-[16px] tracking-[-0.01em] leading-none">{brand.agencyName}</div>
-            <div className="text-[11.5px] text-[var(--muted)] mt-0.5">Powered by ReportBeacon</div>
-          </div>
+          {brand.logo ? (
+            <>
+              <img src={brand.logo} alt={brand.agencyName} className="h-11 max-w-[180px] object-contain bg-white rounded-[10px] px-2.5 py-1.5" />
+              <span className="text-[11.5px] text-[var(--muted)]">Powered by ReportBeacon</span>
+            </>
+          ) : (
+            <>
+              <span className="w-9 h-9 rounded-[9px] grid place-items-center text-[13px] font-bold text-white" style={{ background: brand.performance.accent }}>{brandMonogram}</span>
+              <div>
+                <div className="font-bold text-[16px] tracking-[-0.01em] leading-none">{brand.agencyName}</div>
+                <div className="text-[11.5px] text-[var(--muted)] mt-0.5">Powered by ReportBeacon</div>
+              </div>
+            </>
+          )}
         </div>
 
         {valid ? (
