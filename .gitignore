@@ -8,3 +8,10 @@ npm-debug.log*
 
 # TS build info
 *.tsbuildinfo
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

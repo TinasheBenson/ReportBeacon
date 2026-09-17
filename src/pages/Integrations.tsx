@@ -13,6 +13,7 @@ import {
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { PLATFORMS, type SourceStatus } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { relTime } from '@/lib/format'
 import { MODELS, generateLive } from '@/lib/llm'
 import { Card, Button } from '@/components/ui/kit'
@@ -102,7 +103,7 @@ export default function Integrations() {
           <div className="flex flex-col gap-2">
             {importable.map((a) => (
               <div key={a.id} className="flex items-center gap-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3.5 py-2.5">
-                <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[11px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[11px]" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-semibold">{a.name}</div>
                   <div className="text-[11.5px] text-[var(--muted)]">{a.trade} · {a.location}</div>
@@ -168,7 +169,7 @@ export default function Integrations() {
           {accounts.map((a) => (
             <Card key={a.id} className="p-4">
               <div className="flex items-center gap-3 mb-3.5">
-                <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[12px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[12px]" />
                 <div><div className="font-semibold text-[13.5px]">{a.name}</div><div className="text-[11.5px] text-[var(--muted)]">Last synced {relTime(a.lastSyncedMin)}</div></div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">

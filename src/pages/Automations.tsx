@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { CalendarClock, Send, ArrowRight, Mail } from 'lucide-react'
 import { useWorkspace } from '@/context/workspace'
 import { Card, Button } from '@/components/ui/kit'
+import { ClientMark } from '@/components/ClientMark'
 import { Reveal } from '@/components/ui/disclosure'
 
 const FREQ_LABEL: Record<string, string> = { weekly: 'Weekly', monthly: 'Monthly' }
@@ -35,7 +36,7 @@ export default function Automations() {
         <Card className="divide-y divide-[var(--line)]">
           {rows.map(({ client, schedule, nextSend }) => (
             <div key={client.id} className="flex items-center gap-3 px-4 py-3.5">
-              <span className="w-9 h-9 rounded-[9px] grid place-items-center mono text-[12px] font-bold text-white flex-none" style={{ background: client.color }}>{client.mark}</span>
+              <ClientMark account={client} className="w-9 h-9 rounded-[9px] text-[12px]" />
               <div className="min-w-0 flex-1">
                 <Link to={`/app/reports?account=${client.id}`} className="text-[13.5px] font-semibold hover:text-[var(--accent)] transition-colors">{client.name}</Link>
                 <div className="text-[11.5px] text-[var(--muted)] flex items-center gap-1.5"><Mail size={12} /> {schedule.recipient || 'no recipient set'}</div>

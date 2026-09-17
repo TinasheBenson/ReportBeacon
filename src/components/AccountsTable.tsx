@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ChevronRight, ArrowUpDown, ArrowRight } from 'lucide-react'
 import { metricsFor, pacing, health, type Account, type RangeId, type Health } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { money, money2, moneyK, num } from '@/lib/format'
 import { recommendationsFor } from '@/lib/recommend'
 import { useWorkspace } from '@/context/workspace'
@@ -83,7 +84,7 @@ export default function AccountsTable({ range, accounts, showManager = false }: 
                 >
                   <td className="px-3.5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-[8px] grid place-items-center flex-none mono font-bold text-[12px] text-white" style={{ background: a.color }}>{a.mark}</div>
+                      <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[12px]" />
                       <div><div className="font-semibold text-[13.5px] tracking-[-0.01em]">{a.name}</div><div className="text-[11.5px] text-[var(--muted)]">{a.trade} · {a.location}</div></div>
                     </div>
                   </td>

@@ -9,7 +9,7 @@ export const SERIES = ['var(--s-blue)', 'var(--s-orange)', 'var(--s-aqua)']
 export function Card({ children, className = '', as: As = 'div', ...rest }: { children: ReactNode; className?: string; as?: any; [k: string]: any }) {
   return (
     <As
-      className={`bg-[var(--surface)] border border-[var(--line)] rounded-[11px] shadow-[var(--shadow)] ${className}`}
+      className={`bg-[var(--surface)] border border-[var(--line)] rounded-[14px] shadow-[var(--shadow)] ${className}`}
       {...rest}
     >
       {children}

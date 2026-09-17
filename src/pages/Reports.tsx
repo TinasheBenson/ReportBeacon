@@ -4,16 +4,18 @@
  * chrome hidden by the print stylesheet). Formatted per client, with the
  * real reporting-period dates for the selected range.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { Printer, Check, CalendarClock } from 'lucide-react'
+import { Printer, Check, CalendarClock, RotateCcw, Trash2, Send } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { useWorkspace, nextSend, type Freq } from '@/context/workspace'
 import { metricsFor, pacing, RANGES, type Account, type RangeId } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { money, money2, num, compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
 import { useTrimmedLogo } from '@/lib/logo'
+import { apiClient, type SavedReport } from '@/lib/apiClient'
 
 type SectionKey = 'headline' | 'channels' | 'google' | 'search' | 'summary'
 const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
@@ -54,6 +56,16 @@ export default function Reports() {
   const [accountId, setAccountId] = useState(initial)
   const [title, setTitle] = useState('Performance report')
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({ headline: true, channels: true, google: true, search: true, summary: true })
+  const [saved, setSaved] = useState<SavedReport[]>([])
+  async function loadReports() { try { setSaved((await apiClient.listReports()).reports) } catch { /* offline */ } }
+  useEffect(() => { loadReports() }, [])
+  function reopen(r: SavedReport) {
+    const c = r.config as any
+    if (c?.accountId) setAccountId(c.accountId)
+    if (c?.range) setRange(c.range)
+    if (c?.sections) setSections((prev) => ({ ...prev, ...c.sections }))
+    toast.success('Report reopened', { description: r.name })
+  }
 
   const account = getClient(accountId) ?? scope[0]
   const m = useMemo(() => (account ? metricsFor(account, range) : null), [account, range])
@@ -79,7 +91,7 @@ export default function Reports() {
             {scope.map((a) => (
               <button key={a.id} onClick={() => setAccountId(a.id)}
                 className={`flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-left transition-colors border ${a.id === accountId ? 'bg-[var(--accent-weak)] border-[color-mix(in_srgb,var(--accent)_22%,transparent)]' : 'border-transparent hover:bg-[var(--surface-2)]'}`}>
-                <span className="w-6 h-6 rounded-[6px] grid place-items-center mono text-[10px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-6 h-6 rounded-[6px] text-[10px]" />
                 <span className={`text-[13px] font-medium ${a.id === accountId ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{a.name}</span>
               </button>
             ))}
@@ -110,9 +122,36 @@ export default function Reports() {
         </Card>
 
         <div className="flex gap-2.5">
-          <Button variant="primary" className="flex-1 justify-center" disabled={active.length === 0} onClick={() => window.print()}><Printer size={15} /> Export PDF</Button>
-          <Button className="flex-1 justify-center" onClick={() => toast.success('Marked reviewed', { description: `${account.name} · ${rangeLabel}` })}><Check size={15} /> Mark reviewed</Button>
+          <Button variant="primary" className="flex-1 justify-center" disabled={active.length === 0} onClick={() => window.print()} data-testid="report-export-button"><Printer size={15} /> Export PDF</Button>
+          <Button className="flex-1 justify-center" data-testid="report-save-button" onClick={async () => {
+            try {
+              await apiClient.saveReport(title || 'Performance report', { accountId: account.id, accountName: account.name, range, sections })
+              await loadReports()
+              toast.success('Report saved', { description: `${account.name} · ${rangeLabel} · saved to your workspace` })
+            } catch (e) {
+              toast.error('Could not save report', { description: e instanceof Error ? e.message : 'Try again' })
+            }
+          }}><Check size={15} /> Save report</Button>
         </div>
+
+        {saved.length > 0 && (
+          <Card className="p-4" data-testid="saved-reports">
+            <div className="text-[13px] font-bold mb-2">Saved reports</div>
+            <div className="flex flex-col gap-2">
+              {saved.map((r) => (
+                <div key={r.id} className="flex items-center gap-1.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3 py-2" data-testid={`saved-report-${r.id}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12.5px] font-semibold truncate">{r.name}</div>
+                    <div className="text-[11px] text-[var(--muted)]">{new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{r.authorName ? ` · ${r.authorName}` : ''}</div>
+                  </div>
+                  <button title="Reopen" onClick={() => reopen(r)} data-testid={`reopen-report-${r.id}`} className="text-[var(--muted)] hover:text-[var(--accent)] p-1 transition-colors"><RotateCcw size={14} /></button>
+                  <button title="Resend" onClick={() => toast.success('Report sent', { description: r.name })} data-testid={`resend-report-${r.id}`} className="text-[var(--muted)] hover:text-[var(--accent)] p-1 transition-colors"><Send size={14} /></button>
+                  <button title="Delete" onClick={async () => { await apiClient.deleteReport(r.id).catch(() => {}); loadReports(); toast.success('Report deleted') }} data-testid={`delete-report-${r.id}`} className="text-[var(--muted)] hover:text-[var(--st-critical)] p-1 transition-colors"><Trash2 size={14} /></button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -173,7 +212,7 @@ export default function Reports() {
               <h1 className="text-[28px] md:text-[32px] font-bold tracking-[-0.02em] leading-tight mt-1">{title}</h1>
               <div className="text-[15px] font-semibold text-[var(--ink-2)] mt-1">{account.name}</div>
             </div>
-            <div className="w-16 h-16 rounded-[14px] grid place-items-center mono font-bold text-[19px] text-white flex-none" style={{ background: account.color }}>{account.mark}</div>
+            <ClientMark account={account} className="w-16 h-16 rounded-[14px] text-[19px]" />
           </div>
 
           {/* Metadata */}

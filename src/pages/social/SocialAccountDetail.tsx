@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Heart, MessageCircle, Share2, Bookmark, Play, Cloc
 import { ResponsiveContainer, ComposedChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { useApp } from '@/context/app'
 import { RANGES } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import {
   getSocialAccount, socialMetrics, socialHealth, socialRecsFor, socialAlertsFor, socialPlatform,
   POST_TYPE_LABEL, type Post, type Health, type SocialRec,
@@ -59,7 +60,7 @@ export default function SocialAccountDetail() {
 
       <Reveal>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="w-14 h-14 rounded-[13px] grid place-items-center flex-none mono font-bold text-[18px] text-white" style={{ background: account.color }}>{account.mark}</div>
+          <ClientMark account={account} className="w-14 h-14 rounded-[13px] text-[18px]" />
           <div>
             <h1 className="text-[22px] font-bold tracking-[-0.02em] leading-tight">{account.name}</h1>
             <div className="flex items-center gap-2.5 mt-0.5">

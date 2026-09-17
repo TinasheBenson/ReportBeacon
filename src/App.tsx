@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router'
 import { MotionConfig } from 'framer-motion'
 import { Toaster } from 'sonner'
 import { useApp } from '@/context/app'
+import { Logo } from '@/components/Logo'
 import Landing from '@/pages/Landing'
 import Shell from '@/components/shell/Shell'
 import Login from '@/pages/Login'
@@ -24,14 +25,27 @@ import SocialRecommendations from '@/pages/social/SocialRecommendations'
 import SocialReports from '@/pages/social/SocialReports'
 import SocialIntegrations from '@/pages/social/SocialIntegrations'
 
+function Booting() {
+  return (
+    <div className="min-h-screen grid place-items-center" data-testid="app-booting">
+      <div className="flex flex-col items-center gap-3">
+        <Logo size={44} />
+        <div className="text-[12.5px] text-[var(--muted)] animate-pulse">Loading your console…</div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
-  const { theme, seatId } = useApp()
+  const { theme, user, checking } = useApp()
   return (
     <MotionConfig reducedMotion="user">
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
-        {seatId ? (
+        {checking ? (
+          <Route path="/app/*" element={<Booting />} />
+        ) : user ? (
           <Route path="/app" element={<Shell />}>
             <Route index element={<Portfolio />} />
             <Route path="accounts" element={<Accounts />} />

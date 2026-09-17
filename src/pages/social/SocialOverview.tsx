@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { RANGES } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { SOCIAL_ACCOUNTS, socialTotals, socialMetrics, allSocialAlerts, socialHealth, type SocialAccount, type Health } from '@/lib/social'
 import { compact, num } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
@@ -85,7 +86,7 @@ function Row({ a, range }: { a: SocialAccount; range: any }) {
     <tr className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface-2)] transition-colors">
       <td className="py-3 px-4">
         <Link to={`/app/social/clients/${a.id}`} className="flex items-center gap-2.5 group">
-          <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[11px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+          <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[11px]" />
           <span><span className="block font-semibold text-[13px] group-hover:text-[var(--accent)] transition-colors">{a.name}</span><span className="block text-[11px] text-[var(--muted)]">{a.handle} · {a.location}</span></span>
         </Link>
       </td>

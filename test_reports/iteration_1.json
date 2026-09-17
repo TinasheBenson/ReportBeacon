@@ -1,0 +1,36 @@
+{
+  "summary": "Backend (13/13 pytest) and frontend (owner/manager demo login, register-persistence-signout, Branding persistence via PUT/GET /api/workspace, Reports save flow) all pass on the preview URL. Found and fixed one critical backend bug in registerUser where session insert ran on the pool while user insert was still in an uncommitted transaction (FK 23503 sessions_user_id_fkey). Moved createSession() to run after commit() — all register-dependent flows now green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Owner sidebar / Branding", "issues": ["Demo workspace name shows 'Your Agency' instead of 'Northstar Digital' referenced in /app/memory/test_credentials.md — likely doc drift vs seed.ts default; low priority"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reportbeacon_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Reconcile demo workspace name between seed and /app/memory/test_credentials.md (either rename seeded workspace to 'Northstar Digital' or update doc to 'Your Agency')."
+  ],
+  "critical_code_review_comments": [
+    "FIXED: /app/server/src/passwordAuth.ts registerUser() — createSession() was called BEFORE client.query('commit') using the pool (not the tx client), causing sessions.user_id FK violations and 100% signup failure. Reordered to commit first, then createSession. Consider passing the tx client through to createSession for a stricter invariant.",
+    "Same file also does await seedClientsForWorkspace(ws.id).catch(() => {}) — silently swallowing seed errors means new users may land on an empty roster with no signal. At minimum log the error."
+  ],
+  "updated_files": [
+    "/app/server/src/passwordAuth.ts",
+    "/app/backend/tests/test_reportbeacon_api.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "owner@reportbeacon.demo / manager@reportbeacon.demo / viewer@reportbeacon.demo — all password demo1234 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Registration tests create ephemeral users test_<uuid>@reportbeacon.test and lock_<uuid>@reportbeacon.test in Postgres; not cleaned up (kept small, uses random emails so no collisions). Reports test creates + deletes a TEST_Report row.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Stack is Node/Express+Postgres, NOT FastAPI/Mongo. Supervisor progs: rb-api (8001), rb-web (3000), postgres. Auth is httpOnly cookie rb_session — use requests.Session() cookie jar, no bearer tokens. Preview URL served at /api on same origin. Pytest suite lives at /app/backend/tests/test_reportbeacon_api.py and covers health, role-scoped login, wrong-password 401, duplicate-register 409, brute-force 429 lockout, register+seed of 6 clients incl. lakeside-vet/summit-realty, /api/me auth guard, workspace GET/PUT persistence, reports CRUD with authorName/authorEmail. Frontend flows verified via Playwright: landing loads, /app signed-out login, demo-login-agency lands on Portfolio with 4 accounts + Tinashe Benson/Agency owner sidebar, Branding agency-name change persists across page reload (proves PUT/GET /api/workspace), demo-login-account scopes to 2 accounts, report-save-button shows saved toast, sign-out returns to login.",
+  "rca of the issue": "Register 500 root cause: passwordAuth.ts:62 called createSession(user.id) which uses pool.query() (a fresh connection) BEFORE client.query('commit'). The pool-connection couldn't see the uncommitted user row → sessions.user_id foreign key violated with pg code 23503. Reproduction before fix: POST /api/auth/register {email,password,name} → 500 {error:'Could not create the account.'} + rb-api.err.log stack trace pointing to createSession/registerUser. Fix: move createSession() and seedClientsForWorkspace() to after client.query('commit') so the pool connection sees the committed user. All 13 backend tests pass after fix."
+}

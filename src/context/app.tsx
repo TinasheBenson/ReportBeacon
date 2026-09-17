@@ -1,26 +1,39 @@
 /**
- * App-wide UI state: theme, the signed-in seat (mock auth), the active date
- * range, nav collapse, and the OpenRouter AI config. Persisted to
- * localStorage so a reload keeps the operator where they were.
+ * App-wide state: theme, the signed-in user (real email+password session), the
+ * active date range, nav collapse, and the OpenRouter AI config.
+ *
+ * Auth is a server session (httpOnly cookie): on mount we resolve /api/me. The
+ * user's workspace role maps to the console's seat model so every scoped view
+ * (roster, economics, read-only) keeps working. UI preferences persist locally.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { RANGES, SEATS, type RangeId } from '@/lib/data'
+import { RANGES, type RangeId } from '@/lib/data'
+import { apiClient, type ApiUser } from '@/lib/apiClient'
 
 type Theme = 'light' | 'dark'
+export type Role = 'owner' | 'manager' | 'viewer'
 export type Face = 'performance' | 'social'
 export interface AIConfigState { key: string; model: string }
+export interface SessionUser extends ApiUser { role: Role }
+
+// The workspace role drives which seat identity the console scopes to.
+const ROLE_SEAT: Record<Role, string> = { owner: 'owner', manager: 'dana', viewer: 'priya' }
 
 interface AppState {
   theme: Theme
   toggleTheme: () => void
   setTheme: (t: Theme) => void
 
-  // Which face of the console is active when the workspace runs in "both" mode.
   face: Face
   setFace: (f: Face) => void
 
+  // Auth. `checking` gates the app until the session is resolved.
+  user: SessionUser | null
+  checking: boolean
+  role: Role
   seatId: string | null
-  login: (id: string) => void
+  login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, name: string) => Promise<void>
   signOut: () => void
 
   range: RangeId
@@ -41,24 +54,15 @@ function readLS<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key)
     return v === null ? fallback : (JSON.parse(v) as T)
-  } catch {
-    return fallback
-  }
+  } catch { return fallback }
 }
 function writeLS(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)) } catch { /* private mode */ }
 }
 
-// Persisted values are only trusted after validation: a value left by an older
-// build (a renamed range, a removed seat, a wrong shape) is coerced back to a
-// safe default rather than flowing into a hot path and crashing the render.
 function readRange(): RangeId {
   const v = readLS<unknown>('rb-range', '30d')
   return RANGES.some((r) => r.id === v) ? (v as RangeId) : '30d'
-}
-function readSeat(): string | null {
-  const v = readLS<unknown>('rb-seat', null)
-  return typeof v === 'string' && SEATS.some((s) => s.id === v) ? v : null
 }
 function readFace(): Face {
   const v = readLS<unknown>('rb-face', 'performance')
@@ -79,10 +83,15 @@ function initialTheme(): Theme {
   return 'light'
 }
 
+function toSessionUser(me: { user: ApiUser; workspaces: { role: Role }[] }): SessionUser {
+  return { ...me.user, role: me.workspaces[0]?.role ?? 'owner' }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme)
   const [face, setFaceState] = useState<Face>(readFace)
-  const [seatId, setSeatId] = useState<string | null>(readSeat)
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [checking, setChecking] = useState(true)
   const [range, setRangeState] = useState<RangeId>(readRange)
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => readLS<boolean>('rb-nav', false))
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -93,15 +102,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     writeLS('rb-theme', theme)
   }, [theme])
 
+  // Resolve the existing session once on load.
+  useEffect(() => {
+    let cancelled = false
+    apiClient.me()
+      .then((me) => { if (!cancelled) setUser(toSessionUser(me as any)) })
+      .catch(() => { if (!cancelled) setUser(null) })
+      .finally(() => { if (!cancelled) setChecking(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const role: Role = user?.role ?? 'manager'
+  const seatId = user ? (ROLE_SEAT[user.role] ?? 'owner') : null
+
   const value: AppState = {
     theme,
     toggleTheme: () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark')),
     setTheme: setThemeState,
     face,
     setFace: (f) => { setFaceState(f); writeLS('rb-face', f) },
-    seatId,
-    login: (id) => { setSeatId(id); writeLS('rb-seat', id) },
-    signOut: () => { setSeatId(null); writeLS('rb-seat', null) },
+
+    user, checking, role, seatId,
+    login: async (email, password) => { setUser(toSessionUser((await apiClient.login(email, password)) as any)) },
+    register: async (email, password, name) => { setUser(toSessionUser((await apiClient.register(email, password, name)) as any)) },
+    signOut: () => { apiClient.logout().catch(() => {}); setUser(null); try { localStorage.removeItem('rb-ws') } catch {} },
+
     range,
     setRange: (r) => { setRangeState(r); writeLS('rb-range', r) },
     navCollapsed,
