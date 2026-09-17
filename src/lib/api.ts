@@ -1,15 +1,13 @@
 /**
  * Data-access layer — the single seam between the app and where its data lives.
  *
- * Every read the app performs goes through this module. Today each function
- * resolves against the in-browser workspace state and the static catalog;
- * turning ReportBeacon into a real product means changing only this file — each
- * function becomes a `fetch` to the matching endpoint (the async signatures are
- * noted per function) with no change to the store or the UI above it. The store
- * (context/workspace) owns state and mutations; this owns queries.
+ * The client roster (the catalog) is loaded from the backend (GET /api/clients)
+ * and passed in by the workspace store, so this module is pure: it filters and
+ * scopes the roster the store hydrated. Alerts and overview totals are computed
+ * from the same rows.
  */
 import {
-  CATALOG, portfolioTotals, serviceHealthFor,
+  portfolioTotals, serviceHealthFor,
   type Account, type Seat, type RangeId, type ServiceHealth,
 } from './data'
 import { evaluateAll, type AlertRule, type AlertInstance, type AlertStatus } from './alerts'
@@ -29,34 +27,34 @@ const seesAll = (m: Seat) => m.role === 'owner' || m.role === 'viewer'
 
 export const api = {
   /** GET /clients — the live roster (imported, not archived). */
-  listClients(s: DataState): Account[] {
-    return CATALOG.filter((a) => s.importedIds.includes(a.id) && !s.archivedIds.includes(a.id))
+  listClients(s: DataState, catalog: Account[]): Account[] {
+    return catalog.filter((a) => s.importedIds.includes(a.id) && !s.archivedIds.includes(a.id))
   },
 
   /** GET /clients/:id */
-  clientById(id: string): Account | undefined {
-    return CATALOG.find((a) => a.id === id)
+  clientById(catalog: Account[], id: string): Account | undefined {
+    return catalog.find((a) => a.id === id)
   },
 
   /** GET /clients?seat=:id — the roster a seat is allowed to see. */
-  scopedClients(s: DataState, m: Seat): Account[] {
-    const clients = api.listClients(s)
+  scopedClients(s: DataState, m: Seat, catalog: Account[]): Account[] {
+    const clients = api.listClients(s, catalog)
     return seesAll(m) ? clients : clients.filter((c) => s.ownerById[c.id] === m.id)
   },
 
   /** GET /clients?status=archived */
-  archivedClients(s: DataState): Account[] {
-    return CATALOG.filter((a) => s.archivedIds.includes(a.id))
+  archivedClients(s: DataState, catalog: Account[]): Account[] {
+    return catalog.filter((a) => s.archivedIds.includes(a.id))
   },
 
   /** GET /platforms/accounts?imported=false — discoverable, not yet imported. */
-  importableClients(s: DataState): Account[] {
-    return CATALOG.filter((a) => !s.importedIds.includes(a.id) && !s.archivedIds.includes(a.id))
+  importableClients(s: DataState, catalog: Account[]): Account[] {
+    return catalog.filter((a) => !s.importedIds.includes(a.id) && !s.archivedIds.includes(a.id))
   },
 
   /** GET /clients/:id/services — per-service health. */
-  serviceHealth(id: string): ServiceHealth[] {
-    const a = api.clientById(id)
+  serviceHealth(catalog: Account[], id: string): ServiceHealth[] {
+    const a = api.clientById(catalog, id)
     return a ? serviceHealthFor(a) : []
   },
 

@@ -1,26 +1,26 @@
 /**
  * Workspace store: the live agency state that admins and managers change.
  *
- * Clients are not typed in — they are imported from connected platforms
- * (see connectProvider / importClient). Ownership, the imported roster, the
- * archive and the team all live here and persist to localStorage, so the demo
- * behaves like a real multi-seat workspace within one browser.
+ * When signed in, the store hydrates from the API — the client roster from
+ * GET /api/clients and the persisted workspace blob from GET /api/workspace —
+ * and every change is written back (debounced PUT), so the workspace behaves
+ * like a real multi-seat product across reloads and devices. Without a session
+ * (the public landing / offline) it falls back to a seeded localStorage copy.
  */
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useApp } from '@/context/app'
 import {
-  SEATS, ACCOUNTS, PLATFORMS,
+  SEATS, ACCOUNTS, CATALOG, PLATFORMS,
   type Account, type Seat, type PlatformId, type RoleId,
 } from '@/lib/data'
 import { defaultRules, type AlertRule, type AlertStatus } from '@/lib/alerts'
 import { api as dataApi, type LiveAlert } from '@/lib/api'
+import { apiClient } from '@/lib/apiClient'
 
 export type { LiveAlert }
 
 export type Member = Seat
 
-/** A face's palette: a ground/dashboard tint (null = the neutral default) and
- *  a highlight/accent colour. */
 export interface Palette { base: string | null; accent: string }
 export interface Brand {
   agencyName: string
@@ -28,7 +28,6 @@ export interface Brand {
   performance: Palette
   social: Palette
 }
-/** What the workspace reports on. 'both' shows a Performance/Social switch. */
 export type WorkspaceMode = 'performance' | 'social' | 'both'
 export type Freq = 'off' | 'weekly' | 'monthly'
 export interface Schedule { freq: Freq; recipient: string }
@@ -40,42 +39,31 @@ function titleFor(role: RoleId): string {
 
 interface Persisted {
   members: Member[]
-  ownerById: Record<string, string> // clientId -> memberId ('' = unassigned)
+  ownerById: Record<string, string>
   importedIds: string[]
   archivedIds: string[]
   connections: Record<PlatformId, boolean>
   brand: Brand
-  schedules: Record<string, Schedule> // clientId -> schedule
+  schedules: Record<string, Schedule>
   alertRules: AlertRule[]
-  alertStatus: Record<string, { status: AlertStatus; at: string }> // alertId -> lifecycle
+  alertStatus: Record<string, { status: AlertStatus; at: string }>
   invitations: Invitation[]
   mode: WorkspaceMode
 }
 
-// Demo opens under a neutral placeholder brand so a prospect reads it as
-// their own agency, then rebrands it live on the Branding screen.
 const DEFAULT_BRAND: Brand = {
   agencyName: 'Your Agency', logo: null,
-  // Performance keeps the neutral navigation (base null) with the indigo highlight.
   performance: { base: null, accent: '#4a3aa7' },
-  // Social gets its own identity out of the box: a blue navigation rail with a
-  // bright blue highlight. The content area stays white — only the chrome
-  // (sidebar + accents) carries the colour, so the two faces read apart at a
-  // glance even in light mode.
   social: { base: '#1d4ed8', accent: '#3b82f6' },
 }
-// The earlier mint/orange Social default, so returning demo sessions that never
-// customised the Social face are lifted to the new blue identity on load.
 const LEGACY_SOCIAL = { base: '#12b886', accent: '#fd7e14' }
 
-/** Accept both the current per-face shape and the older single-accent brand. */
 function migrateBrand(p: any): Brand {
   if (!p || typeof p !== 'object') return DEFAULT_BRAND
   const name = typeof p.agencyName === 'string' ? p.agencyName : DEFAULT_BRAND.agencyName
   const logo = typeof p.logo === 'string' ? p.logo : null
   if (p.performance && p.social) {
     const social = { base: p.social.base ?? DEFAULT_BRAND.social.base, accent: p.social.accent ?? DEFAULT_BRAND.social.accent }
-    // Lift the old mint/orange default to the new blue one; keep any custom choice.
     const isLegacy = (social.base ?? '').toLowerCase() === LEGACY_SOCIAL.base && (social.accent ?? '').toLowerCase() === LEGACY_SOCIAL.accent
     return {
       agencyName: name, logo,
@@ -83,7 +71,6 @@ function migrateBrand(p: any): Brand {
       social: isLegacy ? { ...DEFAULT_BRAND.social } : social,
     }
   }
-  // Older shape: { agencyName, accent, logo }.
   return {
     agencyName: name, logo,
     performance: { base: null, accent: typeof p.accent === 'string' ? p.accent : DEFAULT_BRAND.performance.accent },
@@ -91,11 +78,10 @@ function migrateBrand(p: any): Brand {
   }
 }
 
-/** When the next automatic send lands: weekly → next Monday, monthly → 1st, both at 9am. */
 export function nextSend(freq: Freq): Date {
   const d = new Date()
-  if (freq === 'weekly') { d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)) } // next Monday
-  else { d.setMonth(d.getMonth() + 1, 1) } // 1st of next month
+  if (freq === 'weekly') { d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)) }
+  else { d.setMonth(d.getMonth() + 1, 1) }
   d.setHours(9, 0, 0, 0)
   return d
 }
@@ -119,25 +105,30 @@ function seed(): Persisted {
   }
 }
 
+/** Merge a partial (localStorage or server) blob over a fresh seed. */
+function mergePersisted(p: Partial<Persisted> | null | undefined): Persisted {
+  const base = seed()
+  if (!p || typeof p !== 'object') return base
+  return {
+    members: Array.isArray(p.members) ? p.members : base.members,
+    ownerById: p.ownerById ?? base.ownerById,
+    importedIds: Array.isArray(p.importedIds) ? p.importedIds : base.importedIds,
+    archivedIds: Array.isArray(p.archivedIds) ? p.archivedIds : base.archivedIds,
+    connections: { ...base.connections, ...(p.connections ?? {}) },
+    brand: migrateBrand(p.brand),
+    schedules: p.schedules ?? base.schedules,
+    alertRules: Array.isArray(p.alertRules) ? p.alertRules : base.alertRules,
+    alertStatus: p.alertStatus ?? base.alertStatus,
+    invitations: Array.isArray(p.invitations) ? p.invitations : base.invitations,
+    mode: p.mode ?? base.mode,
+  }
+}
+
 function load(): Persisted {
   try {
     const raw = localStorage.getItem('rb-ws')
     if (!raw) return seed()
-    const p = JSON.parse(raw) as Partial<Persisted>
-    const base = seed()
-    return {
-      members: p.members ?? base.members,
-      ownerById: p.ownerById ?? base.ownerById,
-      importedIds: p.importedIds ?? base.importedIds,
-      archivedIds: p.archivedIds ?? base.archivedIds,
-      connections: { ...base.connections, ...(p.connections ?? {}) },
-      brand: migrateBrand(p.brand),
-      schedules: p.schedules ?? base.schedules,
-      alertRules: p.alertRules ?? base.alertRules,
-      alertStatus: p.alertStatus ?? base.alertStatus,
-      invitations: p.invitations ?? base.invitations,
-      mode: p.mode ?? base.mode,
-    }
+    return mergePersisted(JSON.parse(raw) as Partial<Persisted>)
   } catch {
     return seed()
   }
@@ -152,22 +143,19 @@ interface WorkspaceApi extends Persisted {
   me: Member | null
   role: RoleId
   isAdmin: boolean
-  canWrite: boolean // false for viewers (read-only)
-  // reads
-  clients: Account[] // live roster (imported, not archived)
+  canWrite: boolean
+  clients: Account[]
   getClient: (id: string) => Account | undefined
   managerFor: (clientId: string) => Member | undefined
   accountsForSeat: (m: Member) => Account[]
   canSee: (m: Member, clientId: string) => boolean
   unassigned: Account[]
   archivedClients: Account[]
-  importable: Account[] // discoverable, not yet imported
+  importable: Account[]
   clientCount: (memberId: string) => number
-  // mutations
   addMember: (name: string, role?: RoleId) => string
   removeMember: (id: string) => void
   setMemberRole: (id: string, role: RoleId) => void
-  // invitations
   invitations: Invitation[]
   invite: (email: string, role: RoleId) => Invitation
   acceptInvite: (token: string, name: string) => string | null
@@ -184,7 +172,6 @@ interface WorkspaceApi extends Persisted {
   setMode: (m: WorkspaceMode) => void
   setSchedule: (clientId: string, s: Schedule) => void
   scheduledFor: (m: Member) => { client: Account; schedule: Schedule; nextSend: Date }[]
-  // alert rules + lifecycle
   alerts: (accounts: Account[]) => LiveAlert[]
   openAlerts: (accounts: Account[]) => LiveAlert[]
   setAlertStatus: (id: string, status: AlertStatus) => void
@@ -197,42 +184,67 @@ interface WorkspaceApi extends Persisted {
 const Ctx = createContext<WorkspaceApi | null>(null)
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { seatId } = useApp()
+  const { seatId, user } = useApp()
   const [state, setState] = useState<Persisted>(load)
+  const [catalog, setCatalog] = useState<Account[]>(() => CATALOG)
+  const putTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Hydrate the roster + persisted blob from the API once a session exists.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [ws, cl] = await Promise.all([
+          apiClient.getWorkspace().catch(() => null),
+          apiClient.getClients().catch(() => null),
+        ])
+        if (cancelled) return
+        if (cl && Array.isArray(cl.clients) && cl.clients.length) setCatalog(cl.clients as Account[])
+        if (ws && ws.state && Object.keys(ws.state).length) setState(mergePersisted(ws.state as Partial<Persisted>))
+      } catch { /* keep local seed */ }
+    })()
+    return () => { cancelled = true }
+  }, [user])
 
   const save = (next: Persisted) => {
     setState(next)
     try { localStorage.setItem('rb-ws', JSON.stringify(next)) } catch { /* private mode */ }
+    if (user) {
+      if (putTimer.current) clearTimeout(putTimer.current)
+      putTimer.current = setTimeout(() => { apiClient.putWorkspace(next as any).catch(() => {}) }, 600)
+    }
   }
   const patch = (p: Partial<Persisted>) => save({ ...state, ...p })
 
   const api = useMemo<WorkspaceApi>(() => {
-    const clients = dataApi.listClients(state)
-    const me = state.members.find((m) => m.id === seatId) ?? null
-    const role: RoleId = me?.role ?? 'manager'
-    // Owners and viewers see the whole agency; managers see only their book.
-    // Viewers see everything but change nothing (canWrite === false).
+    const clients = dataApi.listClients(state, catalog)
+    const meRaw = state.members.find((m) => m.id === seatId) ?? null
+    // Overlay the real signed-in identity onto the seat used for scoping.
+    const me: Member | null = meRaw && user
+      ? { ...meRaw, name: user.name || meRaw.name, initials: initials(user.name || user.email) }
+      : meRaw
+    const role: RoleId = meRaw?.role ?? 'manager'
     const seesAll = (m: Member) => m.role === 'owner' || m.role === 'viewer'
 
     const managerFor = (clientId: string) => {
       const owner = state.ownerById[clientId]
       return owner ? state.members.find((m) => m.id === owner) : undefined
     }
-    const accountsForSeat = (m: Member) => dataApi.scopedClients(state, m)
-    const canSee = (m: Member, clientId: string) =>
-      seesAll(m) || state.ownerById[clientId] === m.id
+    const accountsForSeat = (m: Member) => dataApi.scopedClients(state, m, catalog)
+    const canSee = (m: Member, clientId: string) => seesAll(m) || state.ownerById[clientId] === m.id
 
     return {
       ...state,
       me, role, isAdmin: role === 'owner', canWrite: role !== 'viewer',
       clients,
-      getClient: (id) => dataApi.clientById(id),
+      getClient: (id) => dataApi.clientById(catalog, id),
       managerFor,
       accountsForSeat,
       canSee,
       unassigned: clients.filter((c) => !state.ownerById[c.id]),
-      archivedClients: dataApi.archivedClients(state),
-      importable: dataApi.importableClients(state),
+      archivedClients: dataApi.archivedClients(state, catalog),
+      importable: dataApi.importableClients(state, catalog),
       clientCount: (memberId) => clients.filter((c) => state.ownerById[c.id] === memberId).length,
 
       addMember: (name, memberRole = 'manager') => {
@@ -300,7 +312,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       alerts: (accounts) => {
         const list = dataApi.evaluateAlerts(state, accounts)
-        // Keep severity order (from the engine), sink resolved to the bottom.
         return [...list].sort((a, b) => (a.status === 'resolved' ? 1 : 0) - (b.status === 'resolved' ? 1 : 0))
       },
       openAlerts: (accounts) => dataApi.evaluateAlerts(state, accounts).filter((a) => a.status !== 'resolved'),
@@ -313,7 +324,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       resetWorkspace: () => save(seed()),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, seatId])
+  }, [state, catalog, seatId, user])
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }

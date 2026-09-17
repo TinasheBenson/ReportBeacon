@@ -1,9 +1,12 @@
 /**
- * ReportBeacon API — the real backend behind the app's lib/api.ts seam.
+ * ReportBeacon API — the real backend behind the app's data seam.
  *
- * M1: magic-link auth, multi-tenant workspaces, and /api/me. Runs migrations on
- * boot. The social data endpoints stay 501 until M2 wires real Meta data.
+ * Email + password auth, multi-tenant workspaces, and the JSONB-backed app
+ * stores (workspace state, seeded client roster, saved reports) the frontend
+ * reads/writes instead of localStorage. Magic-link and Meta connect remain
+ * available. Runs migrations and seeds the demo on boot.
  */
+import 'dotenv/config'
 import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
 import { parse as parseCookie, serialize as serializeCookie } from 'cookie'
@@ -13,21 +16,26 @@ import {
   requestMagicLink, verifyMagicLink, sessionUser, endSession, meFor, firstWorkspaceId,
   SESSION_TTL_SECONDS, type SessionUser,
 } from './auth.js'
+import { registerUser, loginUser, AuthError } from './passwordAuth.js'
+import { seedDemo } from './seed.js'
+import {
+  getWorkspaceState, putWorkspaceState, listClients, seedClientsForWorkspace,
+  listReports, createReport, deleteReport,
+} from './store.js'
 import { emailConfigured } from './email.js'
 import { metaEnabled, startAuthUrl, importFromMeta, listAccounts } from './meta.js'
 import { signState, verifyState } from './crypto.js'
 
 const app = express()
 app.disable('x-powered-by')
-app.use(express.json())
+app.set('trust proxy', 1)
+app.use(express.json({ limit: '2mb' }))
 
 const prod = process.env.NODE_ENV === 'production'
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173'
 const COOKIE = 'rb_session'
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined
 
-// The demo and the product frontend call this API from another origin; reflect
-// known origins and allow credentials so the session cookie rides along.
 const origins = (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 app.use(cors({ origin: origins.length ? origins : true, credentials: true }))
 
@@ -47,7 +55,6 @@ function readCookie(req: Request): string | undefined {
   return raw ? parseCookie(raw)[COOKIE] : undefined
 }
 
-// Attach the current user (or null) to every request.
 declare global { // eslint-disable-next-line no-var
   namespace Express { interface Request { user?: SessionUser | null } }
 }
@@ -58,6 +65,12 @@ app.use(async (req: Request, _res: Response, next: NextFunction) => {
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.user) return res.status(401).json({ error: 'unauthenticated' })
   next()
+}
+/** Resolve the caller's primary workspace id or 400. */
+async function scope(req: Request, res: Response): Promise<string | null> {
+  const id = await firstWorkspaceId(req.user!.id)
+  if (!id) { res.status(400).json({ error: 'no workspace' }); return null }
+  return id
 }
 
 const started = Date.now()
@@ -73,13 +86,58 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   })
 })
 
-// ── auth ─────────────────────────────────────────────────────────────────────
+// ── auth: email + password ────────────────────────────────────────────────────
+async function respondWithSession(res: Response, userId: string, token: string) {
+  setSessionCookie(res, token)
+  const user = await sessionUser(token)
+  const workspaces = await meFor(userId)
+  res.json({ user, workspaces })
+}
+
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  if (!dbConfigured) return res.status(503).json({ error: 'database not configured' })
+  try {
+    const { email, password, name } = req.body ?? {}
+    const { sessionToken } = await registerUser(email, password, name ?? null)
+    const who = await sessionUser(sessionToken)
+    await respondWithSession(res, who!.id, sessionToken)
+  } catch (err) {
+    if (err instanceof AuthError) return res.status(err.status).json({ error: err.message })
+    console.error('register:', err)
+    res.status(500).json({ error: 'Could not create the account.' })
+  }
+})
+
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  if (!dbConfigured) return res.status(503).json({ error: 'database not configured' })
+  try {
+    const { email, password } = req.body ?? {}
+    const { sessionToken } = await loginUser(email, password, req.ip ?? 'unknown')
+    const who = await sessionUser(sessionToken)
+    await respondWithSession(res, who!.id, sessionToken)
+  } catch (err) {
+    if (err instanceof AuthError) return res.status(err.status).json({ error: err.message })
+    console.error('login:', err)
+    res.status(500).json({ error: 'Could not sign in.' })
+  }
+})
+
+app.post('/api/auth/logout', async (req: Request, res: Response) => {
+  await endSession(readCookie(req)).catch(() => {})
+  clearSessionCookie(res)
+  res.json({ ok: true })
+})
+
+app.get('/api/me', requireAuth, async (req: Request, res: Response) => {
+  const workspaces = await meFor(req.user!.id)
+  res.json({ user: req.user, workspaces })
+})
+
+// ── auth: magic link (kept) ─────────────────────────────────────────────────────
 app.post('/api/auth/request', async (req: Request, res: Response) => {
   if (!dbConfigured) return res.status(503).json({ error: 'database not configured' })
-  const email = String(req.body?.email ?? '')
   try {
-    const { devLink } = await requestMagicLink(email)
-    // Always the same response, so the endpoint can't be used to probe accounts.
+    const { devLink } = await requestMagicLink(String(req.body?.email ?? ''))
     res.json({ ok: true, message: 'Check your email for a sign-in link.', ...(devLink ? { devLink } : {}) })
   } catch {
     res.status(400).json({ error: 'invalid email' })
@@ -94,18 +152,46 @@ app.get('/api/auth/callback', async (req: Request, res: Response) => {
   res.redirect(`${APP_URL}/app`)
 })
 
-app.post('/api/auth/logout', async (req: Request, res: Response) => {
-  await endSession(readCookie(req)).catch(() => {})
-  clearSessionCookie(res)
+// ── app data: workspace state, clients, reports ─────────────────────────────────
+app.get('/api/workspace', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  res.json({ state: await getWorkspaceState(ws) })
+})
+
+app.put('/api/workspace', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  const state = req.body?.state
+  if (!state || typeof state !== 'object') return res.status(400).json({ error: 'state required' })
+  await putWorkspaceState(ws, state)
   res.json({ ok: true })
 })
 
-app.get('/api/me', requireAuth, async (req: Request, res: Response) => {
-  const workspaces = await meFor(req.user!.id)
-  res.json({ user: req.user, workspaces })
+app.get('/api/clients', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  await seedClientsForWorkspace(ws).catch(() => {}) // heal older workspaces
+  res.json(await listClients(ws))
 })
 
-// ── Meta connect (M2) ────────────────────────────────────────────────────────
+app.get('/api/reports', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  res.json({ reports: await listReports(ws) })
+})
+
+app.post('/api/reports', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  const name = String(req.body?.name ?? '').trim()
+  if (!name) return res.status(400).json({ error: 'name required' })
+  const config = (req.body?.config && typeof req.body.config === 'object') ? req.body.config : {}
+  res.json({ report: await createReport(ws, req.user!.id, name, config) })
+})
+
+app.delete('/api/reports/:id', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  const ok = await deleteReport(ws, req.params.id)
+  res.status(ok ? 200 : 404).json({ ok })
+})
+
+// ── Meta connect (kept) ──────────────────────────────────────────────────────
 app.get('/api/connect/meta/start', requireAuth, async (req: Request, res: Response) => {
   const workspaceId = await firstWorkspaceId(req.user!.id)
   if (!workspaceId) return res.status(400).json({ error: 'no workspace' })
@@ -113,7 +199,6 @@ app.get('/api/connect/meta/start', requireAuth, async (req: Request, res: Respon
   res.redirect(startAuthUrl(state))
 })
 
-// Stub consent screen (only reachable when no real Meta app is configured).
 app.get('/api/connect/meta/mock', (req: Request, res: Response) => {
   const state = String(req.query.state ?? '')
   res.type('html').send(`<!doctype html><meta charset="utf-8"><title>Authorize (mock)</title>
@@ -138,7 +223,6 @@ app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
   }
 })
 
-// ── social data (reads the workspace's imported accounts) ─────────────────────
 app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response) => {
   const workspaceId = await firstWorkspaceId(req.user!.id)
   if (!workspaceId) return res.json({ accounts: [] })
@@ -147,7 +231,8 @@ app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response)
 
 const port = Number(process.env.PORT) || 8080
 runMigrations()
-  .catch((e) => console.error('migrate failed:', e))
+  .then(() => seedDemo())
+  .catch((e) => console.error('boot (migrate/seed) failed:', e))
   .finally(() => {
     app.listen(port, () => console.log(`reportbeacon-api on :${port} (database ${dbConfigured ? 'configured' : 'unconfigured'}, email ${emailConfigured ? 'resend' : 'dev'})`))
   })

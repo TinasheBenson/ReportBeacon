@@ -14,6 +14,7 @@ import { metricsFor, pacing, RANGES, type Account, type RangeId } from '@/lib/da
 import { money, money2, num, compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
 import { useTrimmedLogo } from '@/lib/logo'
+import { apiClient } from '@/lib/apiClient'
 
 type SectionKey = 'headline' | 'channels' | 'google' | 'search' | 'summary'
 const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
@@ -110,8 +111,15 @@ export default function Reports() {
         </Card>
 
         <div className="flex gap-2.5">
-          <Button variant="primary" className="flex-1 justify-center" disabled={active.length === 0} onClick={() => window.print()}><Printer size={15} /> Export PDF</Button>
-          <Button className="flex-1 justify-center" onClick={() => toast.success('Marked reviewed', { description: `${account.name} · ${rangeLabel}` })}><Check size={15} /> Mark reviewed</Button>
+          <Button variant="primary" className="flex-1 justify-center" disabled={active.length === 0} onClick={() => window.print()} data-testid="report-export-button"><Printer size={15} /> Export PDF</Button>
+          <Button className="flex-1 justify-center" data-testid="report-save-button" onClick={async () => {
+            try {
+              await apiClient.saveReport(title || 'Performance report', { accountId: account.id, accountName: account.name, range, sections })
+              toast.success('Report saved', { description: `${account.name} · ${rangeLabel} · saved to your workspace` })
+            } catch (e) {
+              toast.error('Could not save report', { description: e instanceof Error ? e.message : 'Try again' })
+            }
+          }}><Check size={15} /> Save report</Button>
         </div>
 
         <Card className="p-4">

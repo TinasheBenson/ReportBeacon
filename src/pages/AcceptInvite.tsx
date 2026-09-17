@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ArrowRight, ArrowLeft, MailCheck } from 'lucide-react'
-import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { ROLE_LABEL } from '@/lib/data'
 import { Button } from '@/components/ui/kit'
@@ -14,7 +13,6 @@ import { useTrimmedLogo } from '@/lib/logo'
 export default function AcceptInvite() {
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
-  const { login } = useApp()
   const { invitations, acceptInvite, brand, brandMonogram } = useWorkspace()
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -26,7 +24,6 @@ export default function AcceptInvite() {
   function accept() {
     const id = acceptInvite(token, name)
     if (!id) return
-    login(id)
     navigate('/app')
   }
 
