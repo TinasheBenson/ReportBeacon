@@ -59,10 +59,10 @@ export async function registerUser(rawEmail: string, password: string, name: str
     )).rows[0]
     const ws = (await client.query("insert into workspaces (agency_name) values ('Your Agency') returning id")).rows[0]
     await client.query('insert into memberships (user_id, workspace_id, role) values ($1, $2, $3)', [user.id, ws.id, 'owner'])
-    const sessionToken = await createSession(user.id)
     await client.query('commit')
-    // Seed the roster outside the tx (its own connection is fine post-commit).
-    await seedClientsForWorkspace(ws.id).catch(() => {})
+    // Session + roster seed happen post-commit so the FK to users is satisfied.
+    const sessionToken = await createSession(user.id)
+    await seedClientsForWorkspace(ws.id).catch((e) => console.error('seed roster for new workspace failed:', e))
     return { sessionToken }
   } catch (err) {
     await client.query('rollback')
