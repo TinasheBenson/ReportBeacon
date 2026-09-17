@@ -2,11 +2,12 @@
  *  makeAccount(), so a new/edited client gets a believable history + charts. */
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check } from 'lucide-react'
+import { X, Check, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { metricsFor, makeAccount, TRADES, type Account } from '@/lib/data'
 import { useWorkspace } from '@/context/workspace'
 import { Button } from '@/components/ui/kit'
+import { ClientMark } from '@/components/ClientMark'
 
 const COLORS = ['#0c7a63', '#2a78d6', '#eb6834', '#7a5af0', '#c2410c', '#1baf7a', '#d03b3b', '#0e7490']
 
@@ -21,6 +22,24 @@ export default function ClientEditorModal({ open, initial, onClose }: { open: bo
   const [leads, setLeads] = useState(String(initial ? metricsFor(initial, '30d').leads : 180))
   const [rating, setRating] = useState(String(initial?.gbp.rating ?? 4.7))
   const [color, setColor] = useState(initial?.color ?? COLORS[0])
+  const [logo, setLogo] = useState<string | null>(initial?.logo ?? null)
+
+  async function pickLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const raw = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(file) })
+    const img = new Image()
+    img.onload = () => {
+      const max = 256, scale = Math.min(1, max / Math.max(img.width, img.height))
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale))
+      const c = document.createElement('canvas'); c.width = w; c.height = h
+      c.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      setLogo(c.toDataURL('image/png'))
+    }
+    img.onerror = () => setLogo(raw)
+    img.src = raw
+  }
 
   function save() {
     if (!name.trim() || !location.trim()) { toast.error('Name and location are required'); return }
@@ -28,7 +47,7 @@ export default function ClientEditorModal({ open, initial, onClose }: { open: bo
       id: initial?.id, name: name.trim(), trade, location: location.trim(), color,
       mark: name.trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2),
       budget: Number(budget) || 0, retainer: Number(retainer) || 0,
-      monthlyLeads: Number(leads) || 1, rating: Number(rating) || 4.5,
+      monthlyLeads: Number(leads) || 1, rating: Number(rating) || 4.5, logo,
     })
     upsertClient(account)
     toast.success(editing ? 'Client updated' : 'Client added', { description: `${account.name} · saved to your roster` })
@@ -84,6 +103,18 @@ export default function ClientEditorModal({ open, initial, onClose }: { open: bo
                       style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : undefined }} />
                   ))}
                 </div>
+              </Field>
+
+              <Field label="Brand logo (optional)" full>
+                <div className="flex items-center gap-3 mt-1">
+                  <ClientMark account={{ logo, color, mark: name.trim().slice(0, 2).toUpperCase() || 'CL', name }} className="w-11 h-11 rounded-[10px] text-[14px]" />
+                  <label data-testid="client-editor-logo-label" className="cursor-pointer inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--accent)] bg-[var(--accent-weak)] rounded-[8px] px-3 py-2 hover:brightness-105 transition-all">
+                    <Upload size={14} /> Upload
+                    <input type="file" accept="image/*" className="hidden" onChange={pickLogo} data-testid="client-editor-logo-input" />
+                  </label>
+                  {logo && <button onClick={() => setLogo(null)} data-testid="client-editor-logo-remove" className="text-[12px] text-[var(--muted)] hover:text-[var(--st-critical)] transition-colors">Remove</button>}
+                </div>
+                <p className="text-[11px] text-[var(--muted)] mt-1.5">Shown on the roster and in reports. Falls back to the colour badge.</p>
               </Field>
             </div>
 

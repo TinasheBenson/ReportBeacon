@@ -8,6 +8,7 @@ import {
   ArrowLeft, FileText, ShieldCheck, Timer, TrendingUp, TrendingDown, Lock, LineChart, Cable, Wallet,
 } from 'lucide-react'
 import { useApp } from '@/context/app'
+import { ClientMark } from '@/components/ClientMark'
 import { useWorkspace } from '@/context/workspace'
 import {
   metricsFor, pacing, health, serviceHealthFor, PLATFORMS, RANGES, type Account, type PlatformId, type Health,
@@ -53,7 +54,7 @@ export default function AccountDetail() {
 
       <Reveal>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="w-14 h-14 rounded-[13px] grid place-items-center flex-none mono font-bold text-[18px] text-white" style={{ background: account.color }}>{account.mark}</div>
+          <ClientMark account={account} className="w-14 h-14 rounded-[13px] text-[18px]" />
           <div>
             <h1 className="text-[22px] font-bold tracking-[-0.02em] leading-tight">{account.name}</h1>
             <div className="flex items-center gap-2.5 mt-0.5"><span className="text-[13px] text-[var(--ink-2)]">{account.trade} · {account.location}</span><HealthBadge health={health(account)} /></div>

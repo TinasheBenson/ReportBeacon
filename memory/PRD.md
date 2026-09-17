@@ -50,6 +50,10 @@ builder). Asked to "clean this up and make it way better" — backend and UI/UX.
   in Postgres; catalog updates live in the workspace store.
 - **Live AI**: confirmed already wired — browser-side OpenRouter (BYOK) in `lib/llm.ts`, tested on
   Integrations, generates real per-account recommendations with graceful rule-engine fallback.
+- **Client logos**: owners can upload a per-client logo in the Client Editor (auto-downscaled to a
+  small PNG data URL, stored on the client's Account JSONB). A new shared `ClientMark` component
+  renders the logo everywhere a client mark appears (roster, Accounts table, Reports, Team,
+  Integrations, Automations, all Social pages), falling back to the coloured monogram.
 
 ## Backlog / next
 - P1: Full UI/UX visual refresh across the 20+ pages (Portfolio/Accounts/Reports/Social)

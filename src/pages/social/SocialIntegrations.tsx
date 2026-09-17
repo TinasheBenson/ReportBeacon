@@ -6,6 +6,7 @@ import { useWorkspace } from '@/context/workspace'
 import { SOCIAL_PLATFORMS, SOCIAL_ACCOUNTS, socialPlatform, type SocialPlatformId } from '@/lib/social'
 import { relTime } from '@/lib/format'
 import { Card, Button } from '@/components/ui/kit'
+import { ClientMark } from '@/components/ClientMark'
 import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { Reveal } from '@/components/ui/disclosure'
 
@@ -54,7 +55,7 @@ export default function SocialIntegrations() {
           {SOCIAL_ACCOUNTS.map((a) => (
             <Card key={a.id} className="p-4">
               <div className="flex items-center gap-3 mb-3">
-                <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[12px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[12px]" />
                 <div><div className="font-semibold text-[13.5px]">{a.name}</div><div className="text-[11.5px] text-[var(--muted)]">{a.handle} · synced {relTime(a.lastSyncedMin)}</div></div>
               </div>
               <div className="flex flex-wrap gap-2">

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { RANGES, type Account } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { useLoading } from '@/lib/useLoading'
 import { Segmented, TableSkeleton, Button, Card } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
@@ -68,7 +69,7 @@ export default function Accounts() {
           <div className="flex flex-col divide-y divide-[var(--line)]">
             {scope.map((a) => (
               <div key={a.id} className="flex items-center gap-3 py-2.5" data-testid={`roster-row-${a.id}`}>
-                <span className="w-7 h-7 rounded-[7px] grid place-items-center mono text-[10px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-7 h-7 rounded-[7px] text-[10px]" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-semibold truncate">{a.name}</div>
                   <div className="text-[11.5px] text-[var(--muted)]">{a.trade} · {a.location}</div>

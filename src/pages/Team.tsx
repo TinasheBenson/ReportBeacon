@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { UserPlus, Trash2, Archive, RotateCcw, Inbox, Mail, Copy, Check } from 'lucide-react'
 import { useWorkspace } from '@/context/workspace'
 import { ROLE_LABEL, type RoleId } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { Card, Button, SectionTitle } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
 
@@ -139,7 +140,7 @@ export default function Team() {
             const owner = managerFor(c.id)
             return (
               <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[11px] font-bold text-white flex-none" style={{ background: c.color }}>{c.mark}</span>
+                <ClientMark account={c} className="w-8 h-8 rounded-[8px] text-[11px]" />
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-semibold">{c.name}</div>
                   <div className="text-[11.5px] text-[var(--muted)]">{c.trade} · {c.location}</div>
@@ -165,7 +166,7 @@ export default function Team() {
           <Card className="divide-y divide-[var(--line)]">
             {archivedClients.map((c) => (
               <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="w-8 h-8 rounded-[8px] grid place-items-center mono text-[11px] font-bold text-white flex-none opacity-60" style={{ background: c.color }}>{c.mark}</span>
+                <ClientMark account={c} className="w-8 h-8 rounded-[8px] text-[11px] opacity-60" />
                 <div className="flex-1 min-w-0"><div className="text-[13px] font-semibold text-[var(--ink-2)]">{c.name}</div><div className="text-[11.5px] text-[var(--muted)]">{c.trade} · {c.location}</div></div>
                 <Button onClick={() => { restoreClient(c.id); toast.success(`${c.name} restored`, { description: 'Now unassigned' }) }} className="text-[12px] py-1.5 px-2.5"><RotateCcw size={13} /> Restore</Button>
               </div>

@@ -11,6 +11,7 @@ import { Printer, Check, CalendarClock, RotateCcw, Trash2, Send } from 'lucide-r
 import { useApp } from '@/context/app'
 import { useWorkspace, nextSend, type Freq } from '@/context/workspace'
 import { metricsFor, pacing, RANGES, type Account, type RangeId } from '@/lib/data'
+import { ClientMark } from '@/components/ClientMark'
 import { money, money2, num, compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
 import { useTrimmedLogo } from '@/lib/logo'
@@ -90,7 +91,7 @@ export default function Reports() {
             {scope.map((a) => (
               <button key={a.id} onClick={() => setAccountId(a.id)}
                 className={`flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-left transition-colors border ${a.id === accountId ? 'bg-[var(--accent-weak)] border-[color-mix(in_srgb,var(--accent)_22%,transparent)]' : 'border-transparent hover:bg-[var(--surface-2)]'}`}>
-                <span className="w-6 h-6 rounded-[6px] grid place-items-center mono text-[10px] font-bold text-white flex-none" style={{ background: a.color }}>{a.mark}</span>
+                <ClientMark account={a} className="w-6 h-6 rounded-[6px] text-[10px]" />
                 <span className={`text-[13px] font-medium ${a.id === accountId ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{a.name}</span>
               </button>
             ))}
@@ -211,7 +212,7 @@ export default function Reports() {
               <h1 className="text-[28px] md:text-[32px] font-bold tracking-[-0.02em] leading-tight mt-1">{title}</h1>
               <div className="text-[15px] font-semibold text-[var(--ink-2)] mt-1">{account.name}</div>
             </div>
-            <div className="w-16 h-16 rounded-[14px] grid place-items-center mono font-bold text-[19px] text-white flex-none" style={{ background: account.color }}>{account.mark}</div>
+            <ClientMark account={account} className="w-16 h-16 rounded-[14px] text-[19px]" />
           </div>
 
           {/* Metadata */}

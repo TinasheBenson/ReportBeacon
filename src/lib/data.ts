@@ -151,6 +151,7 @@ export interface Account {
   location: string
   mark: string
   color: string
+  logo?: string | null
   budget: number
   retainer: number
   lastSyncedMin: number
@@ -369,6 +370,7 @@ export interface NewClientInput {
   retainer: number
   monthlyLeads: number
   rating: number
+  logo?: string | null
 }
 
 export const TRADES: Account['trade'][] = ['Dental', 'Med spa', 'Legal', 'Auto repair', 'Veterinary', 'Real estate']
@@ -400,7 +402,7 @@ export function makeAccount(input: NewClientInput): Account {
   return {
     id, name: input.name, trade: input.trade, location: input.location,
     mark: input.mark.slice(0, 2).toUpperCase() || input.name.slice(0, 2).toUpperCase(),
-    color: input.color, budget: spend, retainer: Math.max(0, Math.round(input.retainer)), lastSyncedMin: 3,
+    color: input.color, logo: input.logo ?? null, budget: spend, retainer: Math.max(0, Math.round(input.retainer)), lastSyncedMin: 3,
     leadsDaily: series(seed, leads, 0.06), spendDaily: series(seed + 7, spend, 0.03),
     sources: { lsa: 'live', googleAds: 'live', gbp: 'live', meta: 'live', semrush: 'live' },
     lsa: { leads: lsaLeads, cpl: +(cpl * 0.7).toFixed(1), guaranteed: true, responseMins: +(2 + (seed % 5)).toFixed(1), series: short(seed + 1, 30, 5, 0.4) },
