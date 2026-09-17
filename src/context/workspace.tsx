@@ -178,6 +178,8 @@ interface WorkspaceApi extends Persisted {
   addAlertRule: (rule: AlertRule) => void
   updateAlertRule: (id: string, patch: Partial<AlertRule>) => void
   deleteAlertRule: (id: string) => void
+  upsertClient: (account: Account) => void
+  removeClient: (id: string) => void
   resetWorkspace: () => void
 }
 
@@ -320,6 +322,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       addAlertRule: (rule) => patch({ alertRules: [...state.alertRules, rule] }),
       updateAlertRule: (id, p) => patch({ alertRules: state.alertRules.map((r) => (r.id === id ? { ...r, ...p } : r)) }),
       deleteAlertRule: (id) => patch({ alertRules: state.alertRules.filter((r) => r.id !== id) }),
+
+      upsertClient: (account) => {
+        setCatalog((prev) => (prev.some((c) => c.id === account.id) ? prev.map((c) => (c.id === account.id ? account : c)) : [...prev, account]))
+        if (!state.importedIds.includes(account.id)) {
+          save({ ...state, importedIds: [...state.importedIds, account.id], archivedIds: state.archivedIds.filter((x) => x !== account.id) })
+        }
+        if (user) apiClient.upsertClient(account as any).catch(() => {})
+      },
+      removeClient: (id) => {
+        setCatalog((prev) => prev.filter((c) => c.id !== id))
+        const ownerById = { ...state.ownerById }; delete ownerById[id]
+        save({ ...state, importedIds: state.importedIds.filter((x) => x !== id), archivedIds: state.archivedIds.filter((x) => x !== id), ownerById })
+        if (user) apiClient.deleteClient(id).catch(() => {})
+      },
 
       resetWorkspace: () => save(seed()),
     }

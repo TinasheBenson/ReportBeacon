@@ -13,13 +13,14 @@ import { parse as parseCookie, serialize as serializeCookie } from 'cookie'
 import { dbConfigured, dbHealthy } from './db.js'
 import { runMigrations } from './migrate.js'
 import {
-  requestMagicLink, verifyMagicLink, sessionUser, endSession, meFor, firstWorkspaceId,
+  requestMagicLink, verifyMagicLink, sessionUser, endSession, meFor, firstWorkspaceId, roleFor,
   SESSION_TTL_SECONDS, type SessionUser,
 } from './auth.js'
 import { registerUser, loginUser, AuthError } from './passwordAuth.js'
 import { seedDemo } from './seed.js'
 import {
   getWorkspaceState, putWorkspaceState, listClients, seedClientsForWorkspace,
+  upsertClient, deleteClient,
   listReports, createReport, deleteReport,
 } from './store.js'
 import { emailConfigured } from './email.js'
@@ -170,6 +171,24 @@ app.get('/api/clients', requireAuth, async (req: Request, res: Response) => {
   const ws = await scope(req, res); if (!ws) return
   await seedClientsForWorkspace(ws).catch(() => {}) // heal older workspaces
   res.json(await listClients(ws))
+})
+
+// Owner-only client editor: add/update or remove a client from the roster.
+app.post('/api/clients', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  if ((await roleFor(req.user!.id, ws)) !== 'owner') return res.status(403).json({ error: 'Only the agency owner can edit clients.' })
+  const client = req.body?.client
+  const id = client?.id
+  if (!client || typeof client !== 'object' || typeof id !== 'string' || !id) return res.status(400).json({ error: 'client with id required' })
+  await upsertClient(ws, id, client, Boolean(req.body?.importable))
+  res.json({ ok: true })
+})
+
+app.delete('/api/clients/:id', requireAuth, async (req: Request, res: Response) => {
+  const ws = await scope(req, res); if (!ws) return
+  if ((await roleFor(req.user!.id, ws)) !== 'owner') return res.status(403).json({ error: 'Only the agency owner can remove clients.' })
+  const ok = await deleteClient(ws, req.params.id)
+  res.status(ok ? 200 : 404).json({ ok })
 })
 
 app.get('/api/reports', requireAuth, async (req: Request, res: Response) => {

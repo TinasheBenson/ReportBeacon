@@ -49,6 +49,20 @@ export async function listClients(workspaceId: string): Promise<{ clients: unkno
   }
 }
 
+// ── client editor (owner-managed roster) ─────────────────────────────────────
+export async function upsertClient(workspaceId: string, id: string, data: unknown, importable = false): Promise<void> {
+  await db().query(
+    `insert into clients (workspace_id, client_id, data, importable) values ($1, $2, $3, $4)
+     on conflict (workspace_id, client_id) do update set data = excluded.data, importable = excluded.importable`,
+    [workspaceId, id, data, importable],
+  )
+}
+
+export async function deleteClient(workspaceId: string, id: string): Promise<boolean> {
+  const r = await db().query('delete from clients where workspace_id = $1 and client_id = $2', [workspaceId, id])
+  return (r.rowCount ?? 0) > 0
+}
+
 // ── reports ───────────────────────────────────────────────────────────────────
 export async function listReports(workspaceId: string) {
   const r = await db().query(

@@ -37,6 +37,20 @@ builder). Asked to "clean this up and make it way better" — backend and UI/UX.
 - **Testing**: backend 13/13 pytest + frontend Playwright flows — 100% (iteration_1.json).
   Fixed a critical register bug (session insert before tx commit → FK violation).
 
+## Implemented (iteration 2 — the four follow-ups)
+- **Visual refresh** (token-level, cascades every screen): warm "paper" ground, jade/teal accent
+  (dropped the generic indigo), Bricolage Grotesque display typeface for all headings, richer
+  cards (larger radius) + deeper warm shadows. Light + dark both retuned. `src/index.css`,
+  `index.html`, `components/ui/kit.tsx`.
+- **Saved Reports list**: Reports page lists saved reports with reopen (loads config back into the
+  builder), resend (demo), and delete — backed by GET/POST/DELETE /api/reports.
+- **Client Editor** (owner-only): Add / Edit / Remove clients on the Accounts page via a modal;
+  `makeAccount()` synthesises a full 60-day Account from a few fields so charts/health/reports work.
+  New endpoints POST /api/clients + DELETE /api/clients/:id (owner-guarded via `roleFor`), persisted
+  in Postgres; catalog updates live in the workspace store.
+- **Live AI**: confirmed already wired — browser-side OpenRouter (BYOK) in `lib/llm.ts`, tested on
+  Integrations, generates real per-account recommendations with graceful rule-engine fallback.
+
 ## Backlog / next
 - P1: Full UI/UX visual refresh across the 20+ pages (Portfolio/Accounts/Reports/Social)
   via design_agent — this session focused on backend + auth + the Login surface.

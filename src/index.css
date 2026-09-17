@@ -10,29 +10,29 @@
    ========================================================================= */
 :root {
   color-scheme: light;
-  --plane: #f7f8fa;
+  --plane: #f2efe9;
   --surface: #ffffff;
-  --surface-2: #fbfbfd;
-  --ink: #101828;
-  --ink-2: #5a6472;
-  --muted: #98a2b3;
-  --line: #e7e9ee;
-  --line-2: #d7dbe2;
-  --accent: #4a3aa7;
-  --accent-weak: color-mix(in srgb, var(--accent) 12%, transparent);
+  --surface-2: #f8f6f1;
+  --ink: #191713;
+  --ink-2: #5b554c;
+  --muted: #a29b8e;
+  --line: #e7e2d8;
+  --line-2: #d8d2c5;
+  --accent: #0c7a63;
+  --accent-weak: color-mix(in srgb, var(--accent) 13%, transparent);
   --accent-ink: #ffffff;
   /* Chrome = the nav rail + topbar. Neutral by default; a face with a brand
      base (see applyChrome in Shell) overrides these inline so the navigation
-     carries the brand colour while the content area below stays clean white. */
+     carries the brand colour while the content area below stays clean. */
   --chrome: #ffffff;
-  --chrome-2: #f7f8fa;
-  --chrome-ink: #101828;
-  --chrome-ink-2: #5a6472;
-  --chrome-muted: #98a2b3;
-  --chrome-line: #e7e9ee;
-  --chrome-line-2: #d7dbe2;
-  --chrome-hover: #f1f2f5;
-  --chrome-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --chrome-2: #f8f6f1;
+  --chrome-ink: #191713;
+  --chrome-ink-2: #5b554c;
+  --chrome-muted: #a29b8e;
+  --chrome-line: #e7e2d8;
+  --chrome-line-2: #d8d2c5;
+  --chrome-hover: #f1eee7;
+  --chrome-active-bg: color-mix(in srgb, var(--accent) 13%, transparent);
   --chrome-active-ink: var(--accent);
   --chrome-badge-bg: var(--accent);
   --chrome-badge-ink: #ffffff;
@@ -45,36 +45,37 @@
   --s-blue: #2a78d6;
   --s-orange: #eb6834;
   --s-aqua: #1baf7a;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.04);
-  --shadow-pop: 0 8px 28px rgba(16, 24, 40, 0.12);
+  --shadow: 0 1px 2px rgba(41, 34, 20, 0.05), 0 1px 3px rgba(41, 34, 20, 0.04);
+  --shadow-pop: 0 14px 40px -8px rgba(41, 34, 20, 0.18), 0 2px 8px rgba(41, 34, 20, 0.06);
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --plane: #0c0d10;
-    --surface: #16181d;
-    --surface-2: #1b1e24;
-    --ink: #f2f4f7;
-    --ink-2: #a4abb8;
-    --muted: #737a88;
-    --line: #262a31;
-    --line-2: #333842;
-    --accent: #9085e9;
-    --accent-weak: color-mix(in srgb, var(--accent) 24%, transparent);
-    --accent-ink: #14121f;
-    --chrome: #16181d;
-    --chrome-2: #1b1e24;
-    --chrome-ink: #f2f4f7;
-    --chrome-ink-2: #a4abb8;
-    --chrome-muted: #737a88;
-    --chrome-line: #262a31;
-    --chrome-line-2: #333842;
-    --chrome-hover: #1f232b;
-    --chrome-active-bg: color-mix(in srgb, var(--accent) 24%, transparent);
+    --plane: #100e0b;
+    --surface: #1a1714;
+    --surface-2: #211e19;
+    --ink: #f4f1ea;
+    --ink-2: #aca596;
+    --muted: #7d766a;
+    --line: #2a261f;
+    --line-2: #39342b;
+    --accent: #2ed3b7;
+    --accent-weak: color-mix(in srgb, var(--accent) 22%, transparent);
+    --accent-ink: #0c1512;
+    --chrome: #1a1714;
+    --chrome-2: #211e19;
+    --chrome-ink: #f4f1ea;
+    --chrome-ink-2: #aca596;
+    --chrome-muted: #7d766a;
+    --chrome-line: #2a261f;
+    --chrome-line-2: #39342b;
+    --chrome-hover: #241f19;
+    --chrome-active-bg: color-mix(in srgb, var(--accent) 22%, transparent);
     --chrome-active-ink: var(--accent);
     --chrome-badge-bg: var(--accent);
-    --chrome-badge-ink: #14121f;
+    --chrome-badge-ink: #0c1512;
     --good: #55d38c;
     --bad: #f97066;
     --st-good: #17b917;
@@ -84,33 +85,35 @@
     --s-blue: #3987e5;
     --s-orange: #d95926;
     --s-aqua: #199e70;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.55);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-pop: 0 16px 44px -8px rgba(0, 0, 0, 0.62), 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --plane: #0c0d10;
-  --surface: #16181d;
-  --surface-2: #1b1e24;
-  --ink: #f2f4f7;
-  --ink-2: #a4abb8;
-  --muted: #737a88;
-  --line: #262a31;
-  --line-2: #333842;
-  --accent: #9085e9;
-  --accent-weak: color-mix(in srgb, var(--accent) 24%, transparent);
-  --accent-ink: #14121f;
-  --chrome: #16181d;
-  --chrome-2: #1b1e24;
-  --chrome-ink: #f2f4f7;
-  --chrome-ink-2: #a4abb8;
-  --chrome-muted: #737a88;
-  --chrome-line: #262a31;
-  --chrome-line-2: #333842;
-  --chrome-hover: #1f232b;
-  --chrome-active-bg: color-mix(in srgb, var(--accent) 24%, transparent);
+  --plane: #100e0b;
+  --surface: #1a1714;
+  --surface-2: #211e19;
+  --ink: #f4f1ea;
+  --ink-2: #aca596;
+  --muted: #7d766a;
+  --line: #2a261f;
+  --line-2: #39342b;
+  --accent: #2ed3b7;
+  --accent-weak: color-mix(in srgb, var(--accent) 22%, transparent);
+  --accent-ink: #0c1512;
+  --chrome: #1a1714;
+  --chrome-2: #211e19;
+  --chrome-ink: #f4f1ea;
+  --chrome-ink-2: #aca596;
+  --chrome-muted: #7d766a;
+  --chrome-line: #2a261f;
+  --chrome-line-2: #39342b;
+  --chrome-hover: #241f19;
+  --chrome-active-bg: color-mix(in srgb, var(--accent) 22%, transparent);
   --chrome-active-ink: var(--accent);
+  --chrome-badge-bg: var(--accent);
+  --chrome-badge-ink: #0c1512;
   --good: #55d38c;
   --bad: #f97066;
   --st-good: #17b917;
@@ -120,8 +123,8 @@
   --s-blue: #3987e5;
   --s-orange: #d95926;
   --s-aqua: #199e70;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 16px 44px -8px rgba(0, 0, 0, 0.62), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 @layer base {
@@ -143,7 +146,9 @@
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4 {
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
+    font-weight: 700;
   }
   :focus-visible {
     outline: 2px solid var(--accent);
@@ -171,6 +176,7 @@
 
 @layer utilities {
   .num { font-variant-numeric: tabular-nums; }
+  .display { font-family: var(--font-display); letter-spacing: -0.02em; }
   .mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-variant-numeric: tabular-nums;

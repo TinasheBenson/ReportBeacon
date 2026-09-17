@@ -104,6 +104,24 @@ export default function Login() {
               <>Already have a console? <button onClick={() => { setMode('signin'); setError('') }} data-testid="switch-to-signin" className="font-semibold text-[var(--accent)] hover:underline">Sign in</button></>
             )}
           </div>
+
+          {/* Mobile: the demo roles live in the right panel on desktop; surface them here on small screens. */}
+          <div className="lg:hidden mt-6 pt-5 border-t border-[var(--line)]">
+            <div className="text-[11.5px] font-semibold text-[var(--ink-2)] mb-2.5">Or jump into a live demo</div>
+            <div className="flex flex-col gap-2">
+              {DEMO_SEATS.map((s) => (
+                <button key={s.email} onClick={() => demoLogin(s.email)} disabled={busy}
+                  data-testid={`demo-login-mobile-${s.label.split(' ')[0].toLowerCase()}`}
+                  className="flex items-center gap-3 p-3 rounded-[11px] bg-[var(--surface-2)] border border-[var(--line)] text-left active:scale-[0.99] transition-transform disabled:opacity-60">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold">{s.label}</span>
+                    <span className="block text-[11.5px] text-[var(--muted)]">{s.hint}</span>
+                  </span>
+                  <ArrowRight size={16} className="text-[var(--muted)]" />
+                </button>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
 

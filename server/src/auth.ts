@@ -117,3 +117,9 @@ export async function firstWorkspaceId(userId: string): Promise<string | null> {
 }
 
 export const SESSION_TTL_SECONDS = SESSION_TTL_DAYS * 24 * 60 * 60
+
+/** The caller's role on a workspace (owner|manager|viewer), or null. */
+export async function roleFor(userId: string, workspaceId: string): Promise<string | null> {
+  const r = await db().query('select role from memberships where user_id = $1 and workspace_id = $2', [userId, workspaceId])
+  return r.rows[0]?.role ?? null
+}

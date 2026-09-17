@@ -351,6 +351,70 @@ export function getAccount(id: string): Account | undefined {
   return CATALOG.find((a) => a.id === id)
 }
 
+// ---------------------------------------------------------------------------
+// Client synthesis — build a full Account from the handful of fields an owner
+// edits in the Client Editor. The deterministic generators above give every
+// new client a believable 60-day history and per-channel breakdown, so the
+// charts, health and reports work exactly like the seeded roster.
+// ---------------------------------------------------------------------------
+
+export interface NewClientInput {
+  id?: string
+  name: string
+  trade: Account['trade']
+  location: string
+  color: string
+  mark: string
+  budget: number
+  retainer: number
+  monthlyLeads: number
+  rating: number
+}
+
+export const TRADES: Account['trade'][] = ['Dental', 'Med spa', 'Legal', 'Auto repair', 'Veterinary', 'Real estate']
+
+export function slugify(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'client-' + Date.now().toString(36)
+}
+
+function hashSeed(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h) || 1
+}
+
+export function makeAccount(input: NewClientInput): Account {
+  const id = input.id || slugify(input.name)
+  const seed = hashSeed(id)
+  const leads = Math.max(1, Math.round(input.monthlyLeads))
+  const spend = Math.max(1, Math.round(input.budget))
+  const rating = Math.min(5, Math.max(0, input.rating))
+  const cpl = spend / leads
+  // Distribute leads/spend across channels with believable weights.
+  const lsaLeads = Math.round(leads * 0.33)
+  const gAdsConv = Math.round(leads * 0.42)
+  const metaRes = Math.max(0, leads - lsaLeads - gAdsConv)
+  const gAdsSpend = Math.round(spend * 0.5)
+  const metaSpend = Math.round(spend * 0.22)
+  const kw = 90 + (seed % 140)
+  return {
+    id, name: input.name, trade: input.trade, location: input.location,
+    mark: input.mark.slice(0, 2).toUpperCase() || input.name.slice(0, 2).toUpperCase(),
+    color: input.color, budget: spend, retainer: Math.max(0, Math.round(input.retainer)), lastSyncedMin: 3,
+    leadsDaily: series(seed, leads, 0.06), spendDaily: series(seed + 7, spend, 0.03),
+    sources: { lsa: 'live', googleAds: 'live', gbp: 'live', meta: 'live', semrush: 'live' },
+    lsa: { leads: lsaLeads, cpl: +(cpl * 0.7).toFixed(1), guaranteed: true, responseMins: +(2 + (seed % 5)).toFixed(1), series: short(seed + 1, 30, 5, 0.4) },
+    googleAds: { spend: gAdsSpend, clicks: gAdsConv * 24, conversions: gAdsConv, costPerConv: gAdsConv ? +(gAdsSpend / gAdsConv).toFixed(1) : 0, series: short(seed + 2, 22, 4, 0.4) },
+    gbp: { rating: +rating.toFixed(1), ratingPrev: +Math.max(0, rating - 0.1).toFixed(1), reviews: 120 + (seed % 500), reviewDelta: 6 + (seed % 24), views: 6000 + (seed % 14000), directions: 120 + (seed % 380), series: short(seed + 3, rating || 4.5, 0.06, 0.02) },
+    meta: { spend: metaSpend, results: metaRes, costPerResult: metaRes ? +(metaSpend / metaRes).toFixed(1) : 0, reach: 12000 + (seed % 32000), series: short(seed + 4, 12, 3, 0.3) },
+    semrush: {
+      keywords: kw, visibility: +(20 + (seed % 22)).toFixed(1), visibilityDelta: +(((seed % 90) / 10) - 4).toFixed(1), series: short(seed + 5, 24, 2.2, 0.7),
+      gaining: [{ term: `${input.trade.toLowerCase()} ${input.location.split(',')[0].toLowerCase()}`, from: 14, to: 5 }, { term: `best ${input.trade.toLowerCase()} near me`, from: 18, to: 9 }],
+      losing: [{ term: `cheap ${input.trade.toLowerCase()}`, from: 7, to: 12 }],
+    },
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // Derived metrics

@@ -33,6 +33,8 @@ export const apiClient = {
   getWorkspace: () => req<{ state: Record<string, unknown> }>('/api/workspace'),
   putWorkspace: (state: Record<string, unknown>) => req<{ ok: boolean }>('/api/workspace', { method: 'PUT', body: JSON.stringify({ state }) }),
   getClients: () => req<{ clients: unknown[]; importableIds: string[] }>('/api/clients'),
+  upsertClient: (client: Record<string, unknown>) => req<{ ok: boolean }>('/api/clients', { method: 'POST', body: JSON.stringify({ client }) }),
+  deleteClient: (id: string) => req<{ ok: boolean }>(`/api/clients/${id}`, { method: 'DELETE' }),
 
   listReports: () => req<{ reports: SavedReport[] }>('/api/reports'),
   saveReport: (name: string, config: Record<string, unknown>) => req<{ report: SavedReport }>('/api/reports', { method: 'POST', body: JSON.stringify({ name, config }) }),
