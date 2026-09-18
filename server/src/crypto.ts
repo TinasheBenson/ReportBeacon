@@ -10,7 +10,9 @@
 import crypto from 'node:crypto'
 
 function loadKey(): Buffer {
-  const b64 = process.env.TOKEN_ENC_KEY
+  // Trimmed: a trailing newline on a pasted key changes its decoded length
+  // and the service then refuses to boot with a confusing length error.
+  const b64 = process.env.TOKEN_ENC_KEY?.trim()
   if (b64) {
     const k = Buffer.from(b64, 'base64')
     if (k.length !== 32) throw new Error('TOKEN_ENC_KEY must be 32 bytes (base64)')
@@ -44,7 +46,7 @@ export function decrypt(buf: Buffer): string {
 }
 
 // ── signed OAuth state (CSRF protection on the connect flow) ──────────────────
-const STATE_SECRET = process.env.OAUTH_STATE_SECRET || process.env.TOKEN_ENC_KEY || 'reportbeacon-dev-state'
+const STATE_SECRET = process.env.OAUTH_STATE_SECRET?.trim() || process.env.TOKEN_ENC_KEY?.trim() || 'reportbeacon-dev-state'
 const STATE_TTL_MS = 10 * 60 * 1000
 const b64u = (b: Buffer) => b.toString('base64url')
 const hmac = (body: string) => crypto.createHmac('sha256', STATE_SECRET).update(body).digest('base64url')
