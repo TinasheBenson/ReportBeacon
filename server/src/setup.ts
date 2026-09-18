@@ -46,7 +46,7 @@ function domainCovers(cookieDomain: string, h: string | null): boolean {
   return h === d || h.endsWith(`.${d}`)
 }
 
-export async function buildChecks(): Promise<Check[]> {
+export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check[]> {
   const checks: Check[] = []
   const APP_URL = process.env.APP_URL
   const API_URL = process.env.API_URL
@@ -103,6 +103,17 @@ export async function buildChecks(): Promise<Check[]> {
     })
   } else {
     checks.push({ name: 'App and API URLs', level: 'pass', detail: `App at ${APP_URL}, API at ${API_URL}.` })
+  }
+
+  // A rejected origin is the single most common cause of "Failed to fetch":
+  // the preflight answers 204, the real request is never sent, and nothing in
+  // the browser says why.
+  if (rejectedOrigins.length) {
+    checks.push({
+      name: 'Blocked browser origins', level: 'fail',
+      detail: `This API has refused requests from: ${rejectedOrigins.join(', ')}. A front end on one of those addresses will show "Failed to fetch" on every request, including sign-in.`,
+      fix: `If that address is a front end of yours, add it to CORS_ORIGINS on the api service, or add its host suffix (e.g. .vercel.app) to CORS_ORIGIN_SUFFIXES. If you did not expect it, ignore it — nothing was served to it.`,
+    })
   }
 
   if (APP_URL && !CORS.includes(APP_URL)) {
@@ -279,8 +290,8 @@ ${dataBlock ? `<h2>Your data</h2>${dataBlock}` : ''}
 </body></html>`
 }
 
-export async function setupCheckHandler(req: Request, res: Response, workspaceId: string | null) {
-  const checks = await buildChecks()
+export async function setupCheckHandler(req: Request, res: Response, workspaceId: string | null, rejectedOrigins: string[] = []) {
+  const checks = await buildChecks(rejectedOrigins)
   const data = workspaceId ? await dataStatus(workspaceId).catch(() => null) : null
   const wantsJson = req.query.format === 'json' || !String(req.headers.accept ?? '').includes('text/html')
   if (wantsJson) {
