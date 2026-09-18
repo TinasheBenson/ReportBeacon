@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
-import { SOCIAL_ACCOUNTS } from '@/lib/social'
+import { useSocial } from '@/context/social'
 import { useTrimmedLogo } from '@/lib/logo'
 
 // A face's brand colour ("base") paints the chrome — the nav rail and its
@@ -96,6 +96,7 @@ const SHARED_PATHS = ['/app/team', '/app/branding', '/app/settings']
 export default function Shell() {
   const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, signOut, face: appFace, setFace } = useApp()
   const { me, isAdmin, accountsForSeat, brand, openAlerts, mode } = useWorkspace()
+  const { accounts: socialAccounts } = useSocial()
   const location = useLocation()
   const navigate = useNavigate()
   const scoped = me ? accountsForSeat(me) : []
@@ -193,7 +194,7 @@ export default function Shell() {
             {mode === 'both' && (
               <Segmented value={face} onChange={switchFace} size="sm" options={[{ value: 'performance', label: 'Performance' }, { value: 'social', label: 'Social' }]} />
             )}
-            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{face === 'social' ? `${SOCIAL_ACCOUNTS.length} accounts` : seat?.role === 'owner' ? 'Agency view' : `${scoped.length} accounts`}</span>
+            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{face === 'social' ? `${socialAccounts.length} accounts` : seat?.role === 'owner' ? 'Agency view' : `${scoped.length} accounts`}</span>
             <IconButton label="Toggle light and dark" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
           </header>
 

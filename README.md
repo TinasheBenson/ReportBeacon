@@ -41,5 +41,12 @@ npm run preview
 
 ## Deploy
 
-Vercel auto-detects Vite. Build command `npm run build`, output `dist/`
-(also declared in `vercel.json`).
+**Vercel (the zero-backend demo).** Auto-detects Vite. Build command
+`npm run build`, output `dist/` (also declared in `vercel.json`). With no
+`VITE_API_BASE` set, the app runs entirely on the demo roster in
+`src/lib/data.ts` / `src/lib/social.ts` — no server required.
+
+**Railway (the real app).** Set `VITE_API_BASE` to the API origin at build time
+and the Social face reads live data from the backend instead. See
+[`DEPLOY_FRONTEND.md`](DEPLOY_FRONTEND.md) for the service, the SPA fallback and
+the custom domain, and [`server/DEPLOY.md`](server/DEPLOY.md) for the API.

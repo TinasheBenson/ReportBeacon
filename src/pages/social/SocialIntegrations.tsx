@@ -1,18 +1,63 @@
-/** Social integrations: connect the platforms a social manager runs on. */
-import { useState } from 'react'
+/** Social integrations: connect the platforms a social manager runs on, and
+ *  keep the numbers fresh once they are connected. */
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { PlugZap } from 'lucide-react'
+import { PlugZap, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useWorkspace } from '@/context/workspace'
-import { SOCIAL_PLATFORMS, SOCIAL_ACCOUNTS, socialPlatform, type SocialPlatformId } from '@/lib/social'
+import { useSocial } from '@/context/social'
+import { SOCIAL_PLATFORMS, socialPlatform, type SocialPlatformId } from '@/lib/social'
 import { relTime } from '@/lib/format'
 import { Card, Button } from '@/components/ui/kit'
 import { ClientMark } from '@/components/ClientMark'
 import { PlatformLogo } from '@/components/social/PlatformLogo'
+import { SourceBadge } from '@/components/social/SourceBadge'
 import { Reveal } from '@/components/ui/disclosure'
+
+/** Facebook and Instagram arrive together through the Meta connect flow; the
+ *  other two are not built yet, so they are shown as what they are. */
+const VIA_META: SocialPlatformId[] = ['instagram', 'facebook']
 
 export default function SocialIntegrations() {
   const { isAdmin, canWrite } = useWorkspace()
-  const [on, setOn] = useState<Record<SocialPlatformId, boolean>>({ instagram: true, facebook: true, tiktok: true, linkedin: false })
+  const { accounts, source, connected, metaConfigured, syncing, sync, connectMeta, refresh } = useSocial()
+  const [params, setParams] = useSearchParams()
+  const [lastErrors, setLastErrors] = useState<string[]>([])
+
+  // The Meta callback redirects back here with the outcome on the query string.
+  useEffect(() => {
+    const connectedParam = params.get('connected')
+    const problem = params.get('connect')
+    if (connectedParam === 'meta') {
+      const n = Number(params.get('accounts') ?? 0)
+      const live = Number(params.get('live') ?? 0)
+      toast.success(`Meta connected — ${n} account${n === 1 ? '' : 's'} imported${live > 0 ? `, ${live} pulling live data` : ''}`)
+      void refresh()
+    } else if (problem === 'error') {
+      toast.error('Meta connection failed. Check the app credentials and try again.')
+    } else if (problem === 'invalid') {
+      toast.error('That connect link expired. Try connecting again.')
+    }
+    if (connectedParam || problem) {
+      params.delete('connected'); params.delete('accounts'); params.delete('live'); params.delete('connect')
+      setParams(params, { replace: true })
+    }
+  }, [params, setParams, refresh])
+
+  async function runSync() {
+    try {
+      const res = await sync()
+      if (!res) return
+      setLastErrors(res.errors)
+      if (res.live > 0) toast.success(`Synced — ${res.live} channel${res.live === 1 ? '' : 's'} pulled live from Meta`)
+      else if (res.errors.length) toast.error('Sync finished, but no channel returned live data.')
+      else toast.success('Synced.')
+    } catch (err) {
+      toast.error((err as Error).message)
+    }
+  }
+
+  const connectedPlatforms = new Set(accounts.flatMap((a) => a.platforms))
 
   return (
     <Reveal className="flex flex-col gap-5 max-w-[980px]">
@@ -23,10 +68,13 @@ export default function SocialIntegrations() {
             <div className="text-[14px] font-bold">Social connections</div>
             <div className="text-[12.5px] text-[var(--ink-2)] mt-0.5">Connect a platform and ReportBeacon pulls in the profiles and posts you manage there.</div>
           </div>
+          <SourceBadge source={source} />
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {SOCIAL_PLATFORMS.map((pl) => {
-            const isOn = on[pl.id]
+            const viaMeta = VIA_META.includes(pl.id)
+            const isOn = connectedPlatforms.has(pl.id)
             return (
               <div key={pl.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3 py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -34,39 +82,74 @@ export default function SocialIntegrations() {
                   <span className="w-[9px] h-[9px] rounded-full" style={{ background: isOn ? 'var(--st-good)' : 'var(--line-2)' }} />
                 </div>
                 <span className="text-[12.5px] font-semibold">{pl.name}</span>
-                {isAdmin && canWrite ? (
-                  isOn
-                    ? <Button className="py-1 px-2 text-[11px]" onClick={() => { setOn((s) => ({ ...s, [pl.id]: false })); toast.success(`${pl.name} disconnected`) }}>Disconnect</Button>
-                    : <Button variant="primary" className="py-1 px-2 text-[11px]" onClick={() => { setOn((s) => ({ ...s, [pl.id]: true })); toast.success(`${pl.name} connected`) }}>Connect</Button>
+                {viaMeta ? (
+                  isAdmin && canWrite ? (
+                    <Button variant={isOn ? undefined : 'primary'} className="py-1 px-2 text-[11px]" onClick={connectMeta}>
+                      {isOn ? 'Reconnect' : 'Connect'}
+                    </Button>
+                  ) : (
+                    <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: isOn ? 'var(--st-good)' : 'var(--muted)' }}>{isOn ? 'Connected' : 'Not connected'}</span>
+                  )
                 ) : (
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: isOn ? 'var(--st-good)' : 'var(--muted)' }}>{isOn ? 'Connected' : 'Not connected'}</span>
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Coming soon</span>
                 )}
               </div>
             )
           })}
         </div>
-        <div className="text-[11.5px] text-[var(--muted)] mt-3">Facebook and Instagram connect together through Meta. LinkedIn and TikTok connect once their developer access is approved.</div>
+
+        <div className="flex flex-wrap items-center gap-3 mt-4">
+          {isAdmin && canWrite && connected && (
+            <Button className="py-1.5 px-3 text-[12px] inline-flex items-center gap-1.5" onClick={runSync} disabled={syncing}>
+              <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Syncing…' : 'Sync now'}
+            </Button>
+          )}
+          <span className="text-[11.5px] text-[var(--muted)]">
+            Facebook and Instagram connect together through Meta. LinkedIn and TikTok connect once their developer access is approved.
+          </span>
+        </div>
+
+        {!metaConfigured && (
+          <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2 flex items-start gap-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
+            <AlertTriangle size={13} className="mt-0.5 flex-none" style={{ color: 'var(--st-warn)' }} />
+            <span>No Meta app is configured on the server, so connecting runs against a mock and imports sample accounts. Set <code>META_APP_ID</code> and <code>META_APP_SECRET</code> to pull real data.</span>
+          </div>
+        )}
+
+        {lastErrors.length > 0 && (
+          <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
+            <div className="font-semibold mb-1 flex items-center gap-1.5" style={{ color: 'var(--st-warn)' }}><AlertTriangle size={13} /> Last sync reported</div>
+            <ul className="list-disc pl-4 flex flex-col gap-0.5">
+              {lastErrors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>
+        )}
       </Card>
 
       <div>
         <div className="text-[13px] font-bold mb-1">Account sync status</div>
         <p className="text-[12.5px] text-[var(--ink-2)] mb-3">Every managed profile and when it last pulled fresh data.</p>
         <div className="flex flex-col gap-3">
-          {SOCIAL_ACCOUNTS.map((a) => (
+          {accounts.map((a) => (
             <Card key={a.id} className="p-4">
               <div className="flex items-center gap-3 mb-3">
                 <ClientMark account={a} className="w-8 h-8 rounded-[8px] text-[12px]" />
-                <div><div className="font-semibold text-[13.5px]">{a.name}</div><div className="text-[11.5px] text-[var(--muted)]">{a.handle} · synced {relTime(a.lastSyncedMin)}</div></div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-[13.5px]">{a.name}</div>
+                  <div className="text-[11.5px] text-[var(--muted)]">{a.handle} · synced {relTime(a.lastSyncedMin)}</div>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {a.platforms.map((pid) => {
-                  const pl = socialPlatform(pid)
-                  const live = on[pid]
+                {a.channels.map((ch) => {
+                  const pl = socialPlatform(ch.platform)
+                  const healthy = (ch as { status?: string }).status !== 'needs_reauth'
                   return (
-                    <span key={pid} className="inline-flex items-center gap-1.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-[8px] px-2.5 py-1.5 text-[12px]">
-                      <PlatformLogo platform={pid} size={16} />
+                    <span key={ch.platform} className="inline-flex items-center gap-1.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-[8px] px-2.5 py-1.5 text-[12px]"
+                      title={healthy ? undefined : 'This channel needs reconnecting — its token was rejected.'}>
+                      <PlatformLogo platform={ch.platform} size={16} />
                       {pl.name}
-                      <span className="w-[7px] h-[7px] rounded-full" style={{ background: live ? 'var(--st-good)' : 'var(--st-critical)' }} />
+                      <span className="w-[7px] h-[7px] rounded-full" style={{ background: healthy ? 'var(--st-good)' : 'var(--st-critical)' }} />
                     </span>
                   )
                 })}

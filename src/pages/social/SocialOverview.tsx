@@ -5,7 +5,9 @@ import { ArrowRight } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { RANGES } from '@/lib/data'
 import { ClientMark } from '@/components/ClientMark'
-import { SOCIAL_ACCOUNTS, socialTotals, socialMetrics, allSocialAlerts, socialHealth, type SocialAccount, type Health } from '@/lib/social'
+import { socialTotals, socialMetrics, allSocialAlerts, socialHealth, type SocialAccount, type Health } from '@/lib/social'
+import { useSocial } from '@/context/social'
+import { SourceBadge } from '@/components/social/SourceBadge'
 import { compact, num } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
 import { Card, Stat, Segmented, Button, SectionTitle, SeverityDot, Chip } from '@/components/ui/kit'
@@ -18,10 +20,10 @@ const healthColor = (h: Health) => (h === 'good' ? 'var(--st-good)' : h === 'wat
 export default function SocialOverview() {
   const { range, setRange } = useApp()
   const navigate = useNavigate()
-  const accounts = SOCIAL_ACCOUNTS
+  const { accounts, source, loading: socialLoading } = useSocial()
   const t = socialTotals(range, accounts)
   const alerts = allSocialAlerts(accounts)
-  const loading = useLoading([range], 420)
+  const loading = useLoading([range], 420) || socialLoading
 
   if (loading) {
     return <div className="flex flex-col gap-6"><div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[92px] rounded-[12px] bg-[var(--surface)] border border-[var(--line)]" />)}</div><div className="h-[300px] rounded-[12px] bg-[var(--surface)] border border-[var(--line)]" /></div>
@@ -36,6 +38,14 @@ export default function SocialOverview() {
           <Stat label="Engagement rate" value={t.engagementRate + '%'} note="across accounts" />
           <Stat label="Posts published" value={num(t.posts)} note="this period" />
           <Stat label="Needs attention" value={t.openAlerts} note={`${accounts.length} accounts`} />
+        </div>
+        <div className="flex items-center gap-2 mt-3">
+          <SourceBadge source={source} />
+          <span className="text-[11.5px] text-[var(--muted)]">
+            {source === 'live' ? 'Pulled from your connected Meta accounts.'
+              : source === 'seed' ? 'Connected, but showing stand-in numbers until a live pull succeeds.'
+              : 'Showcase roster — connect Meta to see your own accounts.'}
+          </span>
         </div>
       </Reveal>
 

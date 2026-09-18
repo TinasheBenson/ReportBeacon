@@ -5,6 +5,7 @@ import './index.css'
 import App from './App'
 import { AppProvider } from './context/app'
 import { WorkspaceProvider } from './context/workspace'
+import { SocialProvider } from './context/social'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 createRoot(document.getElementById('root')!).render(
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
         <AppProvider>
           <WorkspaceProvider>
-            <App />
+            <SocialProvider>
+              <App />
+            </SocialProvider>
           </WorkspaceProvider>
         </AppProvider>
       </ErrorBoundary>

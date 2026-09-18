@@ -9,9 +9,10 @@ import { useApp } from '@/context/app'
 import { RANGES } from '@/lib/data'
 import { ClientMark } from '@/components/ClientMark'
 import {
-  getSocialAccount, socialMetrics, socialHealth, socialRecsFor, socialAlertsFor, socialPlatform,
+  socialMetrics, socialHealth, socialRecsFor, socialAlertsFor, socialPlatform,
   POST_TYPE_LABEL, type Post, type Health, type SocialRec,
 } from '@/lib/social'
+import { useSocial } from '@/context/social'
 import { compact } from '@/lib/format'
 import { useLoading } from '@/lib/useLoading'
 import { useWorkspace } from '@/context/workspace'
@@ -29,7 +30,8 @@ export default function SocialAccountDetail() {
   const { range, setRange, theme } = useApp()
   const { brand } = useWorkspace()
   const navigate = useNavigate()
-  const account = getSocialAccount(id)
+  const { accountById } = useSocial()
+  const account = accountById(id)
   const loading = useLoading([id, range], 420)
 
   const m = useMemo(() => (account ? socialMetrics(account, range) : null), [account, range])
