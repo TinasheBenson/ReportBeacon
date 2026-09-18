@@ -38,8 +38,54 @@ const APP_URL = process.env.APP_URL ?? 'http://localhost:5173'
 const COOKIE = 'rb_session'
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined
 
+/**
+ * CORS. Credentialed requests need an exact Access-Control-Allow-Origin, so the
+ * allow-list has to name every front end that talks to this API.
+ *
+ * CORS_ORIGINS holds exact origins. CORS_ORIGIN_SUFFIXES holds host suffixes
+ * (e.g. ".tinashebenson.com") so a site's own subdomains work without
+ * re-listing each one. A missing origin fails in a way that is near-impossible
+ * to read from the browser: the preflight still answers 204, the real request
+ * is never sent, and the app just says "Failed to fetch".
+ *
+ * Only ever suffix-match a domain you control. A shared hosting suffix such as
+ * ".vercel.app" or ".netlify.app" would let *any* site on that host make
+ * credentialed calls to this API and read the response with a signed-in user's
+ * cookie. For a one-off preview deployment, add its exact URL to CORS_ORIGINS
+ * instead.
+ *
+ * Which is why a rejected origin is logged, once each. Without it the only
+ * evidence is an absence, and you cannot debug an absence.
+ */
 const origins = (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-app.use(cors({ origin: origins.length ? origins : true, credentials: true }))
+const originSuffixes = (process.env.CORS_ORIGIN_SUFFIXES ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+const rejectedOrigins = new Set<string>()
+
+function originAllowed(origin: string): boolean {
+  if (origins.includes(origin)) return true
+  if (!originSuffixes.length) return false
+  let host: string
+  try { host = new URL(origin).hostname } catch { return false }
+  return originSuffixes.some((sfx) => host === sfx.replace(/^\./, '') || host.endsWith(sfx.startsWith('.') ? sfx : `.${sfx}`))
+}
+
+app.use(cors({
+  credentials: true,
+  origin(origin, cb) {
+    // No Origin header: same-origin, curl, or a server-side call. Allow.
+    if (!origin) return cb(null, true)
+    // Nothing configured at all: allow any origin (dev convenience).
+    if (!origins.length && !originSuffixes.length) return cb(null, true)
+    if (originAllowed(origin)) return cb(null, true)
+    if (!rejectedOrigins.has(origin)) {
+      rejectedOrigins.add(origin)
+      console.warn(`cors: rejected origin ${origin} — add it to CORS_ORIGINS, or its host suffix to CORS_ORIGIN_SUFFIXES`)
+    }
+    // Refuse without throwing: the browser reports the CORS failure, and the
+    // rejection is now in the log above rather than invisible.
+    cb(null, false)
+  },
+}))
 
 function setSessionCookie(res: Response, token: string) {
   res.setHeader('set-cookie', serializeCookie(COOKIE, token, {
@@ -94,7 +140,7 @@ app.get('/api/health', async (_req: Request, res: Response) => {
  */
 app.get('/api/setup', requireAuth, async (req: Request, res: Response) => {
   try {
-    await setupCheckHandler(req, res, await firstWorkspaceId(req.user!.id))
+    await setupCheckHandler(req, res, await firstWorkspaceId(req.user!.id), [...rejectedOrigins])
   } catch (err) {
     console.error('setup check:', err)
     res.status(500).json({ error: 'Setup check failed.' })
