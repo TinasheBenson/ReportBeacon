@@ -1,4 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router'
+// The Performance face's pages (Portfolio, Accounts, AccountDetail, Alerts,
+// AlertRules, Reports, Automations, Integrations, RecommendationsPage) are still
+// in src/pages/ but are deliberately not imported or routed — see the note on
+// the /app route below.
 import { MotionConfig } from 'framer-motion'
 import { Toaster } from 'sonner'
 import { useApp } from '@/context/app'
@@ -6,18 +10,9 @@ import { Logo } from '@/components/Logo'
 import Landing from '@/pages/Landing'
 import Shell from '@/components/shell/Shell'
 import Login from '@/pages/Login'
-import Portfolio from '@/pages/Portfolio'
-import Accounts from '@/pages/Accounts'
-import AccountDetail from '@/pages/AccountDetail'
-import RecommendationsPage from '@/pages/RecommendationsPage'
-import Alerts from '@/pages/Alerts'
-import Reports from '@/pages/Reports'
-import Integrations from '@/pages/Integrations'
 import Settings from '@/pages/Settings'
 import Team from '@/pages/Team'
 import Branding from '@/pages/Branding'
-import Automations from '@/pages/Automations'
-import AlertRules from '@/pages/AlertRules'
 import AcceptInvite from '@/pages/AcceptInvite'
 import SocialOverview from '@/pages/social/SocialOverview'
 import SocialAccountDetail from '@/pages/social/SocialAccountDetail'
@@ -47,24 +42,25 @@ export default function App() {
           <Route path="/app/*" element={<Booting />} />
         ) : user ? (
           <Route path="/app" element={<Shell />}>
-            <Route index element={<Portfolio />} />
-            <Route path="accounts" element={<Accounts />} />
-            <Route path="accounts/:id" element={<AccountDetail />} />
-            <Route path="recommendations" element={<RecommendationsPage />} />
-            <Route path="alerts" element={<Alerts />} />
-            <Route path="alert-rules" element={<AlertRules />} />
+            {/*
+              The Performance face is withdrawn, not deleted. Its roster was
+              generated demo data with no backend behind it, so every figure it
+              showed was invented — and with real Meta numbers now arriving, a
+              face of plausible fiction beside them is a liability. Its routes
+              redirect rather than render, so nothing fake stays reachable by
+              URL, and the pages stay in the repo to come back when there is an
+              ad-platform connector to feed them.
+            */}
+            <Route index element={<Navigate to="/app/social" replace />} />
             <Route path="social" element={<SocialOverview />} />
             <Route path="social/clients/:id" element={<SocialAccountDetail />} />
             <Route path="social/recommendations" element={<SocialRecommendations />} />
             <Route path="social/reports" element={<SocialReports />} />
             <Route path="social/integrations" element={<SocialIntegrations />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="automations" element={<Automations />} />
-            <Route path="integrations" element={<Integrations />} />
             <Route path="team" element={<Team />} />
             <Route path="branding" element={<Branding />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="*" element={<Navigate to="/app" replace />} />
+            <Route path="*" element={<Navigate to="/app/social" replace />} />
           </Route>
         ) : (
           <Route path="/app/*" element={<Login />} />

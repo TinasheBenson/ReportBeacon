@@ -30,6 +30,7 @@ export interface SocialAccountsResponse {
   accounts: any[]
   connected: boolean
   metaConfigured: boolean
+  linkedinConfigured: boolean
   source: SocialSource
 }
 export interface SyncResponse {
@@ -75,6 +76,11 @@ export const apiClient = {
  *  Meta, imports on callback, and sends the browser back to the app. */
 export function metaConnectUrl(): string {
   return `${BASE}/api/connect/meta/start`
+}
+
+/** LinkedIn's connect flow is a redirect for the same reason Meta's is. */
+export function linkedinConnectUrl(): string {
+  return `${BASE}/api/connect/linkedin/start`
 }
 
 /** The setup check renders server-side as a page, so it is a link, not a fetch. */

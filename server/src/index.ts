@@ -23,7 +23,11 @@ import {
   listReports, createReport, deleteReport,
 } from './store.js'
 import { emailConfigured } from './email.js'
-import { metaEnabled, startAuthUrl, importFromMeta, listAccounts, syncWorkspace, listSyncRuns } from './meta.js'
+import {
+  metaEnabled, startAuthUrl, importFromMeta, importFromLinkedIn,
+  listAccounts, syncWorkspace, listSyncRuns,
+} from './meta.js'
+import { linkedinEnabled, startAuthUrl as linkedinAuthUrl } from './linkedin.js'
 import { signState, verifyState } from './crypto.js'
 import { setupCheckHandler } from './setup.js'
 
@@ -303,6 +307,38 @@ app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
   }
 })
 
+// ── LinkedIn connect ─────────────────────────────────────────────────────────
+// Mirrors the Meta flow. LinkedIn's Community Management API is a vetted
+// product, so until the app is approved these endpoints exist but every call
+// fails at LinkedIn's end rather than ours.
+app.get('/api/connect/linkedin/start', requireAuth, async (req: Request, res: Response) => {
+  if (!linkedinEnabled) {
+    return res.redirect(`${APP_URL}/app/social/integrations?connect=linkedin-unconfigured`)
+  }
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.status(400).json({ error: 'no workspace' })
+  res.redirect(linkedinAuthUrl(signState({ w: workspaceId, u: req.user!.id })))
+})
+
+app.get('/api/connect/linkedin/callback', async (req: Request, res: Response) => {
+  const state = verifyState<{ w: string }>(String(req.query.state ?? ''))
+  const code = String(req.query.code ?? '')
+  // LinkedIn reports a refusal on the query string rather than by status.
+  const denied = String(req.query.error ?? '')
+  if (denied) return res.redirect(`${APP_URL}/app/social/integrations?connect=denied`)
+  if (!state || !code) return res.redirect(`${APP_URL}/app/social/integrations?connect=invalid`)
+  try {
+    const { accounts, live } = await importFromLinkedIn(state.w, code)
+    res.redirect(`${APP_URL}/app/social/integrations?connected=linkedin&accounts=${accounts}&live=${live}`)
+  } catch (err) {
+    console.error('linkedin import:', err)
+    // The message is the useful part here — "administers no company pages" and
+    // "not approved for this API" need different actions from the user.
+    const msg = encodeURIComponent(String((err as Error).message).slice(0, 200))
+    res.redirect(`${APP_URL}/app/social/integrations?connect=error&reason=${msg}`)
+  }
+})
+
 app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response) => {
   const workspaceId = await firstWorkspaceId(req.user!.id)
   if (!workspaceId) return res.json({ accounts: [], connected: false })
@@ -314,6 +350,7 @@ app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response)
     // numbers came from it — the UI labels seeded data rather than passing it
     // off as real.
     metaConfigured: metaEnabled,
+    linkedinConfigured: linkedinEnabled,
     source: accounts.some((a) => a.dataSource === 'live') ? 'live' : 'none',
   })
 })

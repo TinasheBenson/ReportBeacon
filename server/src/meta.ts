@@ -17,7 +17,12 @@
 import crypto from 'node:crypto'
 import { pool } from './db.js'
 import { encrypt, decrypt } from './crypto.js'
-import { pullInstagram, pullFacebookPage, isEmpty, type PullResult } from './metaInsights.js'
+import { pullInstagram, pullFacebookPage, type PullResult } from './metaInsights.js'
+import { isEmpty } from './insights.js'
+import {
+  pullOrganization, linkedinEnabled, LinkedInError,
+  exchangeCode as liExchangeCode, fetchOrganizations as liFetchOrganizations,
+} from './linkedin.js'
 import { GRAPH, GraphError } from './graph.js'
 
 // All trimmed: whitespace pasted into a dashboard variable would be sent to
@@ -128,27 +133,36 @@ export async function syncConnection(conn: {
   let result: PullResult | null = null
   let error: string | undefined
 
-  if (!metaEnabled) {
-    error = 'no Meta app configured (META_APP_ID / META_APP_SECRET)'
+  const isLinkedIn = conn.platform === 'linkedin'
+  const configured = isLinkedIn ? linkedinEnabled : metaEnabled
+
+  if (!configured) {
+    error = isLinkedIn
+      ? 'no LinkedIn app configured (LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET)'
+      : 'no Meta app configured (META_APP_ID / META_APP_SECRET)'
   } else if (!conn.external_id || !conn.access_token_enc) {
     error = 'connection has no stored credentials — reconnect required'
   } else {
     try {
       const token = decrypt(conn.access_token_enc)
-      const live = conn.platform === 'instagram'
-        ? await pullInstagram(conn.external_id, token, WINDOW_DAYS)
-        : await pullFacebookPage(conn.external_id, token, WINDOW_DAYS)
+      const live = isLinkedIn
+        ? await pullOrganization(conn.external_id, token, WINDOW_DAYS)
+        : conn.platform === 'instagram'
+          ? await pullInstagram(conn.external_id, token, WINDOW_DAYS)
+          : await pullFacebookPage(conn.external_id, token, WINDOW_DAYS)
       if (isEmpty(live)) {
-        error = 'Meta returned no data for this window'
+        error = `${isLinkedIn ? 'LinkedIn' : 'Meta'} returned no data for this window`
       } else {
         result = live
       }
     } catch (err) {
-      const ge = err as GraphError
-      error = ge.isAuth
-        ? `token rejected — reconnect required (${ge.message})`
+      // Both clients expose the same isAuth question, which is all that matters
+      // here: a rejected token needs a reconnect, anything else is a bad pull.
+      const e = err as GraphError | LinkedInError
+      error = e.isAuth
+        ? `token rejected — reconnect required (${e.message})`
         : `live pull failed: ${(err as Error).message}`
-      if (ge.isAuth) {
+      if (e.isAuth) {
         await db().query(`update platform_connections set status='needs_reauth' where id=$1`, [conn.id]).catch(() => {})
       }
     }
@@ -247,6 +261,49 @@ export async function importFromMeta(workspaceId: string, code: string): Promise
     }
   }
   return { accounts: count, mode, live }
+}
+
+/**
+ * The LinkedIn equivalent of importFromMeta: exchange the code, find the
+ * organizations this member administers, upsert one account per organization,
+ * and sync each. Shares the same upsert keys, so reconnecting refreshes rather
+ * than duplicating, exactly as the Meta path does.
+ */
+export async function importFromLinkedIn(workspaceId: string, code: string): Promise<{ accounts: number; live: number }> {
+  if (!linkedinEnabled) throw new Error('no LinkedIn app configured — set LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET')
+
+  const { token, expiresAt } = await liExchangeCode(code)
+  const orgs = await liFetchOrganizations(token, expiresAt)
+  if (!orgs.length) {
+    // Worth distinguishing from a failure: the member authorised, but
+    // administers no page, so there is genuinely nothing to import.
+    throw new Error('this LinkedIn account administers no company pages — only pages where you are an ADMINISTRATOR can be connected')
+  }
+
+  let count = 0
+  let live = 0
+  for (const org of orgs) {
+    const acct = (await db().query(
+      `insert into social_accounts (workspace_id, name, handle) values ($1,$2,$3)
+       on conflict (workspace_id, name) do update set handle = coalesce(excluded.handle, social_accounts.handle)
+       returning id`,
+      [workspaceId, org.name, org.handle],
+    )).rows[0]
+    count++
+    const conn = (await db().query(
+      `insert into platform_connections (social_account_id, platform, external_id, access_token_enc, token_expires_at, status)
+       values ($1,'linkedin',$2,$3,$4,'connected')
+       on conflict (social_account_id, platform, external_id) do update set
+         access_token_enc = excluded.access_token_enc,
+         token_expires_at = excluded.token_expires_at,
+         status = 'connected'
+       returning id, platform, external_id, access_token_enc`,
+      [acct.id, org.externalId, encrypt(org.token), org.expiresAt],
+    )).rows[0]
+    const r = await syncConnection(conn)
+    if (r.source === 'live') live++
+  }
+  return { accounts: count, live }
 }
 
 // ── read: the Social face's shape ────────────────────────────────────────────

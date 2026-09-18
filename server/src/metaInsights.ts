@@ -22,99 +22,13 @@
  * answered so a sync run can be audited against Meta's own Insights UI.
  */
 import { graph, paged, insights, seriesByDate, firstOf, GraphError } from './graph.js'
+import {
+  DAY, unix, windows, frame, followerCurve, engagementRate, interactionsFromPosts,
+  type PostRow, type PullResult,
+} from './insights.js'
 
-export interface DailyRow {
-  date: string               // YYYY-MM-DD
-  followers: number | null
-  reach: number | null
-  impressions: number | null // "views" in current Meta vocabulary
-  engagementRate: number | null
-}
-
-export interface PostRow {
-  externalId: string
-  type: string
-  caption: string | null
-  postedAt: string
-  reach: number | null
-  impressions: number | null
-  likes: number | null
-  comments: number | null
-  shares: number | null
-  saves: number | null
-  videoViews: number | null
-}
-
-export interface PullResult {
-  daily: DailyRow[]
-  posts: PostRow[]
-  followers: number | null
-  /** Metric names that actually resolved — the audit trail for a sync run. */
-  metricsUsed: string[]
-  /** Non-fatal gaps (a retired metric, a partial window). */
-  warnings: string[]
-}
-
-const DAY = 86_400_000
-const iso = (d: Date) => d.toISOString().slice(0, 10)
-const unix = (d: Date) => Math.floor(d.getTime() / 1000)
-
-/** The [since, until] day windows covering `days` back from today, each at most
- *  `chunk` days — Instagram caps an insights query's range at 30 days. */
-function windows(days: number, chunk = 30): Array<{ since: number; until: number }> {
-  const out: Array<{ since: number; until: number }> = []
-  const end = new Date(); end.setUTCHours(0, 0, 0, 0)
-  const start = new Date(end.getTime() - days * DAY)
-  let cur = start
-  while (cur < end) {
-    const stop = new Date(Math.min(end.getTime(), cur.getTime() + chunk * DAY))
-    out.push({ since: unix(cur), until: unix(stop) })
-    cur = stop
-  }
-  return out
-}
-
-/** An empty 60-day skeleton, oldest first — every puller fills the same frame. */
-function frame(days: number): DailyRow[] {
-  const end = new Date(); end.setUTCHours(0, 0, 0, 0)
-  const rows: DailyRow[] = []
-  for (let i = days - 1; i >= 0; i--) {
-    rows.push({ date: iso(new Date(end.getTime() - i * DAY)), followers: null, reach: null, impressions: null, engagementRate: null })
-  }
-  return rows
-}
-
-/**
- * Rebuild a follower curve from today's count and the daily net-new series.
- * Meta only reports the *current* follower total plus per-day deltas, so the
- * history is walked backwards: yesterday = today − today's net new.
- */
-function followerCurve(rows: DailyRow[], current: number | null, newPerDay: Map<string, number>) {
-  if (current == null) return
-  let running = current
-  for (let i = rows.length - 1; i >= 0; i--) {
-    rows[i].followers = Math.max(0, Math.round(running))
-    running -= newPerDay.get(rows[i].date) ?? 0
-  }
-}
-
-/** engagement ÷ reach × 100 — the same definition the UI reads. */
-function engagementRate(interactions: number | null, reach: number | null): number | null {
-  if (interactions == null || !reach) return null
-  return +((interactions / reach) * 100).toFixed(2)
-}
-
-/** Fold post-level engagement into the day the post went out — the fallback
- *  when an account-level daily interactions series isn't available. */
-function interactionsFromPosts(posts: PostRow[]): Map<string, number> {
-  const byDay = new Map<string, number>()
-  for (const p of posts) {
-    const day = p.postedAt.slice(0, 10)
-    const eng = (p.likes ?? 0) + (p.comments ?? 0) + (p.shares ?? 0) + (p.saves ?? 0)
-    byDay.set(day, (byDay.get(day) ?? 0) + eng)
-  }
-  return byDay
-}
+export { isEmpty } from './insights.js'
+export type { DailyRow, PostRow, PullResult } from './insights.js'
 
 // ── Instagram ────────────────────────────────────────────────────────────────
 
@@ -341,8 +255,3 @@ export async function pullFacebookPage(pageId: string, token: string, days = 60)
   return { daily: rows, posts, followers, metricsUsed, warnings }
 }
 
-/** Did the pull actually find anything worth storing? A window with no reach and
- *  no posts means the connection produced nothing — the caller falls back. */
-export function isEmpty(r: PullResult): boolean {
-  return !r.posts.length && !r.daily.some((d) => d.reach != null || d.impressions != null || d.followers != null)
-}

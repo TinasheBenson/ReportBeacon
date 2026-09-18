@@ -5,8 +5,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  LayoutGrid, Users, Bell, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, CalendarClock,
-  SlidersHorizontal, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, LogOut,
+  LayoutGrid, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, LogOut,
 } from 'lucide-react'
 import { useApp, type Face } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
@@ -61,18 +60,10 @@ function clearFace() {
   root.removeProperty('--accent')
   for (const k of CHROME_KEYS) root.removeProperty(k)
 }
-import { IconButton, Segmented } from '@/components/ui/kit'
+import { IconButton } from '@/components/ui/kit'
 
 type NavItem = { to: string; label: string; icon: any; end?: boolean; badge?: boolean }
 
-const PERF_NAV: NavItem[] = [
-  { to: '/app', label: 'Portfolio', icon: LayoutGrid, end: true },
-  { to: '/app/accounts', label: 'Accounts', icon: Users },
-  { to: '/app/recommendations', label: 'Recommendations', icon: Lightbulb },
-  { to: '/app/alerts', label: 'Alerts', icon: Bell, badge: true },
-  { to: '/app/reports', label: 'Reports', icon: FileText },
-  { to: '/app/automations', label: 'Automations', icon: CalendarClock },
-]
 const SOCIAL_NAV: NavItem[] = [
   { to: '/app/social', label: 'Overview', icon: LayoutGrid, end: true },
   { to: '/app/social/recommendations', label: 'Recommendations', icon: Lightbulb },
@@ -94,8 +85,8 @@ function pageTitle(path: string): string {
 const SHARED_PATHS = ['/app/team', '/app/branding', '/app/settings']
 
 export default function Shell() {
-  const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, signOut, face: appFace, setFace } = useApp()
-  const { me, isAdmin, accountsForSeat, brand, openAlerts, mode } = useWorkspace()
+  const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, signOut } = useApp()
+  const { me, isAdmin, accountsForSeat, brand, openAlerts } = useWorkspace()
   const { accounts: socialAccounts } = useSocial()
   const location = useLocation()
   const navigate = useNavigate()
@@ -103,36 +94,37 @@ export default function Shell() {
   const alertCount = openAlerts(scoped).length
   const seat = me
 
-  const onSocialPath = location.pathname.startsWith('/app/social')
-  const face: Face = mode === 'social' ? 'social' : mode === 'performance' ? 'performance' : (onSocialPath ? 'social' : appFace)
-  const home = face === 'social' ? '/app/social' : '/app'
+  // Social is the only face with a real data source, so it is the only one the
+  // shell offers. The Performance branches are gone rather than hidden: a nav
+  // item that leads to invented numbers is worse than a missing one.
+  const face: Face = 'social'
+  const home = '/app/social'
 
-  const nav1 = face === 'social' ? SOCIAL_NAV : PERF_NAV
+  const nav1 = SOCIAL_NAV
   const NAV_2: NavItem[] = [
     ...(isAdmin ? [
-      ...(face === 'performance' ? [{ to: '/app/alert-rules', label: 'Alert rules', icon: SlidersHorizontal }] : []),
       { to: '/app/team', label: 'Team & access', icon: UsersRound },
       { to: '/app/branding', label: 'Branding', icon: Palette },
     ] : []),
-    { to: face === 'social' ? '/app/social/integrations' : '/app/integrations', label: 'Integrations', icon: Cable },
+    { to: '/app/social/integrations', label: 'Integrations', icon: Cable },
     { to: '/app/settings', label: 'Settings', icon: SettingsIcon },
   ]
 
   useEffect(() => { setMobileNavOpen(false) }, [location.pathname, setMobileNavOpen])
 
-  // Keep the route consistent with the workspace mode.
+  // Everything outside the shared settings pages belongs to the Social face,
+  // so anything else lands there. The router redirects the old Performance
+  // paths too; this catches a stale in-app link.
   useEffect(() => {
     const path = location.pathname
-    const social = path.startsWith('/app/social')
-    const shared = SHARED_PATHS.includes(path)
-    if (mode === 'performance' && social) navigate('/app', { replace: true })
-    else if (mode === 'social' && !social && !shared) navigate('/app/social', { replace: true })
-    else if (mode === 'both' && appFace === 'social' && path === '/app') navigate('/app/social', { replace: true })
-  }, [mode, appFace, location.pathname, navigate])
+    if (!path.startsWith('/app/social') && !SHARED_PATHS.includes(path)) {
+      navigate('/app/social', { replace: true })
+    }
+  }, [location.pathname, navigate])
 
   // White-label: paint the active face's brand colour onto the chrome (rail +
   // accents) and set the highlight, easing it across on a switch or brand edit.
-  const pal = face === 'social' ? brand.social : brand.performance
+  const pal = brand.social
   useEffect(() => {
     const el = document.documentElement
     el.classList.add('theme-morph')
@@ -144,7 +136,6 @@ export default function Shell() {
 
   const railWidth = navCollapsed ? 'lg:w-[68px]' : 'lg:w-[236px]'
   const doSignOut = () => { signOut(); navigate('/app') }
-  const switchFace = (f: Face) => { setFace(f); navigate(f === 'social' ? '/app/social' : '/app') }
 
   return (
     <div className="min-h-screen">
@@ -191,10 +182,7 @@ export default function Shell() {
               Synced 4 min ago
             </span>
             <div className="flex-1" />
-            {mode === 'both' && (
-              <Segmented value={face} onChange={switchFace} size="sm" options={[{ value: 'performance', label: 'Performance' }, { value: 'social', label: 'Social' }]} />
-            )}
-            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{face === 'social' ? `${socialAccounts.length} accounts` : seat?.role === 'owner' ? 'Agency view' : `${scoped.length} accounts`}</span>
+            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{socialAccounts.length} accounts</span>
             <IconButton label="Toggle light and dark" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
           </header>
 
