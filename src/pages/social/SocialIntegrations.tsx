@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { PlugZap, RefreshCw, AlertTriangle } from 'lucide-react'
+import { PlugZap, RefreshCw, AlertTriangle, Stethoscope } from 'lucide-react'
 import { useWorkspace } from '@/context/workspace'
 import { useSocial } from '@/context/social'
+import { setupCheckUrl } from '@/lib/apiClient'
 import { SOCIAL_PLATFORMS, socialPlatform, type SocialPlatformId } from '@/lib/social'
 import { relTime } from '@/lib/format'
 import { Card, Button } from '@/components/ui/kit'
@@ -105,6 +106,16 @@ export default function SocialIntegrations() {
               {syncing ? 'Syncing…' : 'Sync now'}
             </Button>
           )}
+          <a
+            href={setupCheckUrl()}
+            target="_blank"
+            rel="noreferrer"
+            title="Checks every deployment requirement and says, in plain English, what to change for anything that is not working."
+            className="py-1.5 px-3 text-[12px] inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--line)] hover:bg-[var(--surface-2)] transition-colors"
+          >
+            <Stethoscope size={13} />
+            Setup check
+          </a>
           <span className="text-[11.5px] text-[var(--muted)]">
             Facebook and Instagram connect together through Meta. LinkedIn and TikTok connect once their developer access is approved.
           </span>

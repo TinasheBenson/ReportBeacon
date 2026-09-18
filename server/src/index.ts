@@ -26,6 +26,7 @@ import {
 import { emailConfigured } from './email.js'
 import { metaEnabled, startAuthUrl, importFromMeta, listAccounts, syncWorkspace, listSyncRuns } from './meta.js'
 import { signState, verifyState } from './crypto.js'
+import { setupCheckHandler } from './setup.js'
 
 const app = express()
 app.disable('x-powered-by')
@@ -85,6 +86,19 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     email: emailConfigured ? 'resend' : 'dev-console',
     time: new Date().toISOString(),
   })
+})
+
+/**
+ * Setup check — every deployment requirement, pass/fail, with the fix.
+ * Requires a session: it describes how this deployment is wired.
+ */
+app.get('/api/setup', requireAuth, async (req: Request, res: Response) => {
+  try {
+    await setupCheckHandler(req, res, await firstWorkspaceId(req.user!.id))
+  } catch (err) {
+    console.error('setup check:', err)
+    res.status(500).json({ error: 'Setup check failed.' })
+  }
 })
 
 // ── auth: email + password ────────────────────────────────────────────────────

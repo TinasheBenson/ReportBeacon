@@ -76,3 +76,8 @@ export const apiClient = {
 export function metaConnectUrl(): string {
   return `${BASE}/api/connect/meta/start`
 }
+
+/** The setup check renders server-side as a page, so it is a link, not a fetch. */
+export function setupCheckUrl(): string {
+  return `${BASE}/api/setup`
+}

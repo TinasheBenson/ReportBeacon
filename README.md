@@ -47,6 +47,12 @@ npm run preview
 `src/lib/data.ts` / `src/lib/social.ts` — no server required.
 
 **Railway (the real app).** Set `VITE_API_BASE` to the API origin at build time
-and the Social face reads live data from the backend instead. See
-[`DEPLOY_FRONTEND.md`](DEPLOY_FRONTEND.md) for the service, the SPA fallback and
-the custom domain, and [`server/DEPLOY.md`](server/DEPLOY.md) for the API.
+and the Social face reads live data from the backend instead.
+
+- **[`SETUP.md`](SETUP.md) — start here.** Click-by-click, from merging to seeing
+  real Meta numbers, plus what to do when something doesn't work.
+- [`DEPLOY_FRONTEND.md`](DEPLOY_FRONTEND.md) — the frontend service in more detail.
+- [`server/DEPLOY.md`](server/DEPLOY.md) — the API service.
+
+Signed in, `/api/setup` renders a readiness check: every requirement, pass or
+fail, with the fix for anything failing. It's linked from the Integrations page.

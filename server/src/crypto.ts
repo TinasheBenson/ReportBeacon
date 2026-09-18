@@ -22,6 +22,11 @@ function loadKey(): Buffer {
 }
 const KEY = loadKey()
 
+/** True when a real TOKEN_ENC_KEY was supplied (not the dev fallback). The
+ *  setup check reports this, because tokens encrypted under the dev key stop
+ *  decrypting the moment a real key is set. */
+export const tokenKeyConfigured = !!process.env.TOKEN_ENC_KEY
+
 export function encrypt(plain: string): Buffer {
   const iv = crypto.randomBytes(12)
   const cipher = crypto.createCipheriv('aes-256-gcm', KEY, iv)
