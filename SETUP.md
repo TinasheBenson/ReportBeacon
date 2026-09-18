@@ -1,79 +1,58 @@
 # Getting ReportBeacon live — step by step
 
-Everything below is done in a browser: Railway, your DNS provider, and Meta.
-No terminal, except one command in step 2.
+Most of this is already done. What is left is one DNS record, a check in the
+Meta dashboard, and connecting your account.
 
 If anything goes wrong at any point, skip to **"When something isn't working"**
 at the bottom. There is a page that tells you what's broken in plain English.
 
 ---
 
-## Step 1 — Merge the code
+## Already done
 
-The new work sits on a branch. Railway only deploys what's on your main branch,
-so nothing changes until this is merged.
+These were done for you directly against Railway on 18 September, each verified
+in the deploy logs rather than assumed:
 
-Open the pull request, press **Merge pull request**, then **Confirm merge**.
+- **The code is merged and live.** The API redeployed from `main`.
+- **The database migration ran** — log line `migrate: applied 003_live_sync.sql`.
+  That is the fix that stops reconnecting from duplicating your accounts.
+- **`TOKEN_ENC_KEY` was rotated** to a fresh key and a redeploy was forced so the
+  new key is the one actually running. Setting the variable alone would not have
+  done that — the old key stays live until the next deploy.
+- **`META_GRAPH_VERSION=v23.0`** set on the API.
+- **The app service exists**: `ReportBeacon App`, root directory `/`,
+  `VITE_API_BASE=https://api.tinashebenson.com`, serving the built site with SPA
+  fallback (`Accepting connections at http://localhost:8080`).
+- **`app.tinashebenson.com` is attached** to that service.
 
-Railway will notice and redeploy the API on its own. Wait for it to go green.
-
----
-
-## Step 2 — Set the encryption key
-
-**Do this before you connect any Meta account.** This key scrambles your Meta
-access tokens in the database. If you set it *after* connecting, everything that
-was already connected stops working and has to be reconnected.
-
-Run this once, anywhere you have a terminal (your Mac's Terminal app is fine):
-
-```sh
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-It prints a line of random characters. That's the key.
-
-Then in Railway: **your project → the `ReportBeacon` api service → Variables →
-New Variable**
-
-| Name | Value |
-|---|---|
-| `TOKEN_ENC_KEY` | the line you just generated |
-
-Don't paste that value into a chat or a commit. If it ever leaks, generate a new
-one — you'll just have to reconnect your Meta accounts afterwards.
+One caveat on the encryption key: it was generated inside a chat session, so it
+exists in that transcript. If you want one that never has, generate your own and
+paste it over the current value in Railway — but do it **before** you first press
+Connect on Meta. After that, changing it means reconnecting everything.
 
 ---
 
-## Step 3 — Create the service that serves the app
+## Step 1 — Add the DNS record (the only thing left before the app loads)
 
-The API is already deployed. This is the app itself — the part people look at.
+Wherever DNS for `tinashebenson.com` is managed, add:
 
-In Railway, in the **same project** as the API:
+| Type | Name | Value |
+|---|---|---|
+| CNAME | `app` | `y12bqmob.up.railway.app` |
 
-1. **New → GitHub Repo → `TinasheBenson/ReportBeacon`**
-2. Open the new service → **Settings → Root Directory** → set it to `/`
-   *(This matters. The API uses `server`; the app uses `/`. If you leave it on
-   `server` you'll get a second copy of the API instead of the app.)*
-3. **Variables → New Variable:**
+You have done this before — `api` already points at `mhno75un.up.railway.app`
+and is verified with a valid certificate, so the same place and the same kind of
+record.
 
-| Name | Value |
-|---|---|
-| `VITE_API_BASE` | `https://api.tinashebenson.com` |
+Railway issues the certificate automatically once it sees the record. That
+usually takes a few minutes and can take up to an hour.
 
-   *(This one is read while the app is being built, not while it runs. If you add
-   it later, press Redeploy or it won't take effect.)*
-
-4. **Settings → Networking → Custom Domain** → `app.tinashebenson.com`
-5. Railway shows you a CNAME record. Add it at whoever manages DNS for
-   `tinashebenson.com`. It can take a few minutes to start working.
-
-Nothing needs changing on the API side — it already expects the app at that
-address.
+Until then `app.tinashebenson.com` will not load. That is expected and is not a
+sign anything is broken.
 
 ---
 
-## Step 4 — Point Meta at the right address
+## Step 2 — Point Meta at the right address
 
 In the Meta app dashboard, under **Facebook Login → Settings → Valid OAuth
 Redirect URIs**, make sure this exact URL is listed:
@@ -94,7 +73,7 @@ nothing to show.
 
 ---
 
-## Step 5 — Connect and check the numbers are real
+## Step 3 — Connect and check the numbers are real
 
 1. Open `https://app.tinashebenson.com` and sign in.
 2. Go to **Integrations** and press **Connect**.
