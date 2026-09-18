@@ -5,7 +5,7 @@
  * is precisely why it has to be labelled: a stand-in figure that reads as a
  * real one is how a client report goes out wrong.
  */
-import { Database, Radio, FlaskConical } from 'lucide-react'
+import { CircleOff, Radio, FlaskConical } from 'lucide-react'
 import type { SocialSource } from '@/context/social'
 
 const MAP: Record<SocialSource, { label: string; title: string; icon: typeof Radio; color: string; bg: string }> = {
@@ -14,14 +14,14 @@ const MAP: Record<SocialSource, { label: string; title: string; icon: typeof Rad
     title: 'Pulled from the Meta Graph API for your connected accounts.',
     icon: Radio, color: 'var(--st-good)', bg: 'color-mix(in srgb, var(--st-good) 12%, transparent)',
   },
-  seed: {
-    label: 'Sample data',
-    title: 'These accounts are connected but the numbers are stand-ins — a live pull has not succeeded yet. Run a sync, or check the connection.',
-    icon: Database, color: 'var(--st-warn)', bg: 'color-mix(in srgb, var(--st-warn) 14%, transparent)',
+  empty: {
+    label: 'No data',
+    title: 'Nothing has been pulled yet. Connect an account, or if one is connected, open the setup check to see why its last sync returned nothing.',
+    icon: CircleOff, color: 'var(--st-warn)', bg: 'color-mix(in srgb, var(--st-warn) 14%, transparent)',
   },
   demo: {
-    label: 'Demo data',
-    title: 'Nothing is connected yet, so this is the showcase roster. Connect Meta to see your own accounts.',
+    label: 'Showcase',
+    title: 'Sample roster shown to signed-out visitors. Sign in to see your own connected accounts.',
     icon: FlaskConical, color: 'var(--muted)', bg: 'var(--surface-2)',
   },
 }

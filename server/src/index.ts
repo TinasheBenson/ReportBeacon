@@ -17,9 +17,8 @@ import {
   SESSION_TTL_SECONDS, type SessionUser,
 } from './auth.js'
 import { registerUser, loginUser, AuthError } from './passwordAuth.js'
-import { seedDemo } from './seed.js'
 import {
-  getWorkspaceState, putWorkspaceState, listClients, seedClientsForWorkspace,
+  getWorkspaceState, putWorkspaceState, listClients,
   upsertClient, deleteClient,
   listReports, createReport, deleteReport,
 } from './store.js'
@@ -243,7 +242,6 @@ app.put('/api/workspace', requireAuth, async (req: Request, res: Response) => {
 
 app.get('/api/clients', requireAuth, async (req: Request, res: Response) => {
   const ws = await scope(req, res); if (!ws) return
-  await seedClientsForWorkspace(ws).catch(() => {}) // heal older workspaces
   res.json(await listClients(ws))
 })
 
@@ -292,17 +290,6 @@ app.get('/api/connect/meta/start', requireAuth, async (req: Request, res: Respon
   res.redirect(startAuthUrl(state))
 })
 
-app.get('/api/connect/meta/mock', (req: Request, res: Response) => {
-  const state = String(req.query.state ?? '')
-  res.type('html').send(`<!doctype html><meta charset="utf-8"><title>Authorize (mock)</title>
-    <div style="font-family:system-ui;max-width:420px;margin:80px auto;padding:24px;border:1px solid #e5e5ef;border-radius:14px">
-      <h2 style="margin:0 0 8px">Connect Meta <span style="font:600 11px system-ui;color:#fff;background:#c2410c;padding:2px 7px;border-radius:6px;vertical-align:middle">MOCK</span></h2>
-      <p style="color:#556;font-size:14px">No Meta app is configured, so this stands in for Facebook's consent screen. Authorizing imports sample connected accounts.</p>
-      <a href="/api/connect/meta/callback?code=mock-code&state=${encodeURIComponent(state)}"
-         style="display:inline-block;background:#1877f2;color:#fff;text-decoration:none;font:600 14px system-ui;padding:10px 16px;border-radius:8px">Authorize ReportBeacon</a>
-    </div>`)
-})
-
 app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
   const state = verifyState<{ w: string }>(String(req.query.state ?? ''))
   const code = String(req.query.code ?? '')
@@ -327,7 +314,7 @@ app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response)
     // numbers came from it — the UI labels seeded data rather than passing it
     // off as real.
     metaConfigured: metaEnabled,
-    source: accounts.some((a) => a.dataSource === 'live') ? 'live' : accounts.length ? 'seed' : 'none',
+    source: accounts.some((a) => a.dataSource === 'live') ? 'live' : 'none',
   })
 })
 
@@ -356,8 +343,7 @@ app.get('/api/social/sync-runs', requireAuth, async (req: Request, res: Response
 
 const port = Number(process.env.PORT) || 8080
 runMigrations()
-  .then(() => seedDemo())
-  .catch((e) => console.error('boot (migrate/seed) failed:', e))
+  .catch((e) => console.error('boot (migrate) failed:', e))
   .finally(() => {
     app.listen(port, () => console.log(`reportbeacon-api on :${port} (database ${dbConfigured ? 'configured' : 'unconfigured'}, email ${emailConfigured ? 'resend' : 'dev'})`))
   })
