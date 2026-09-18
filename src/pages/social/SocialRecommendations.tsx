@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { X, CalendarClock, Clapperboard, Clock, MessageCircle, TrendingUp } from 'lucide-react'
-import { SOCIAL_ACCOUNTS, socialRecsForMany, type SocialRec } from '@/lib/social'
+import { socialRecsForMany, type SocialRec } from '@/lib/social'
+import { useSocial } from '@/context/social'
 import { Card, Button } from '@/components/ui/kit'
 
 const ICON: Record<SocialRec['category'], typeof Clock> = {
@@ -12,7 +13,8 @@ const ICON: Record<SocialRec['category'], typeof Clock> = {
 const CAT_LABEL: Record<SocialRec['category'], string> = { cadence: 'Cadence', format: 'Format', timing: 'Timing', engagement: 'Engagement', growth: 'Growth' }
 
 export default function SocialRecommendations() {
-  const all = socialRecsForMany(SOCIAL_ACCOUNTS)
+  const { accounts } = useSocial()
+  const all = socialRecsForMany(accounts)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const visible = all.filter((r) => !dismissed.has(r.id))
 

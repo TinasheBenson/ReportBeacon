@@ -24,8 +24,9 @@ import {
   listReports, createReport, deleteReport,
 } from './store.js'
 import { emailConfigured } from './email.js'
-import { metaEnabled, startAuthUrl, importFromMeta, listAccounts } from './meta.js'
+import { metaEnabled, startAuthUrl, importFromMeta, listAccounts, syncWorkspace, listSyncRuns } from './meta.js'
 import { signState, verifyState } from './crypto.js'
+import { setupCheckHandler } from './setup.js'
 
 const app = express()
 app.disable('x-powered-by')
@@ -85,6 +86,19 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     email: emailConfigured ? 'resend' : 'dev-console',
     time: new Date().toISOString(),
   })
+})
+
+/**
+ * Setup check — every deployment requirement, pass/fail, with the fix.
+ * Requires a session: it describes how this deployment is wired.
+ */
+app.get('/api/setup', requireAuth, async (req: Request, res: Response) => {
+  try {
+    await setupCheckHandler(req, res, await firstWorkspaceId(req.user!.id))
+  } catch (err) {
+    console.error('setup check:', err)
+    res.status(500).json({ error: 'Setup check failed.' })
+  }
 })
 
 // ── auth: email + password ────────────────────────────────────────────────────
@@ -234,8 +248,8 @@ app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
   const code = String(req.query.code ?? '')
   if (!state || !code) return res.redirect(`${APP_URL}/app/social/integrations?connect=invalid`)
   try {
-    const { accounts } = await importFromMeta(state.w, code)
-    res.redirect(`${APP_URL}/app/social/integrations?connected=meta&accounts=${accounts}`)
+    const { accounts, live } = await importFromMeta(state.w, code)
+    res.redirect(`${APP_URL}/app/social/integrations?connected=meta&accounts=${accounts}&live=${live}`)
   } catch (err) {
     console.error('meta import:', err)
     res.redirect(`${APP_URL}/app/social/integrations?connect=error`)
@@ -244,8 +258,40 @@ app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
 
 app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response) => {
   const workspaceId = await firstWorkspaceId(req.user!.id)
-  if (!workspaceId) return res.json({ accounts: [] })
-  res.json({ accounts: await listAccounts(workspaceId), source: metaEnabled ? 'meta' : 'stub' })
+  if (!workspaceId) return res.json({ accounts: [], connected: false })
+  const accounts = await listAccounts(workspaceId)
+  res.json({
+    accounts,
+    connected: accounts.length > 0,
+    // Whether a Meta app is configured at all, and whether these particular
+    // numbers came from it — the UI labels seeded data rather than passing it
+    // off as real.
+    metaConfigured: metaEnabled,
+    source: accounts.some((a) => a.dataSource === 'live') ? 'live' : accounts.length ? 'seed' : 'none',
+  })
+})
+
+// Refresh the numbers without sending the user back through OAuth.
+app.post('/api/social/sync', requireAuth, async (req: Request, res: Response) => {
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.status(400).json({ error: 'no workspace' })
+  if ((await roleFor(req.user!.id, workspaceId)) === 'viewer') {
+    return res.status(403).json({ error: 'Viewers cannot trigger a sync.' })
+  }
+  try {
+    const result = await syncWorkspace(workspaceId)
+    res.json({ ok: true, ...result, accounts: await listAccounts(workspaceId) })
+  } catch (err) {
+    console.error('social sync:', err)
+    res.status(500).json({ error: 'Sync failed.' })
+  }
+})
+
+// The audit trail: what each run fetched, which metrics answered, what didn't.
+app.get('/api/social/sync-runs', requireAuth, async (req: Request, res: Response) => {
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.json({ runs: [] })
+  res.json({ runs: await listSyncRuns(workspaceId) })
 })
 
 const port = Number(process.env.PORT) || 8080

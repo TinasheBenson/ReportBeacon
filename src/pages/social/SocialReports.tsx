@@ -8,7 +8,8 @@ import { useApp } from '@/context/app'
 import { useWorkspace, nextSend, type Freq } from '@/context/workspace'
 import { RANGES, type RangeId } from '@/lib/data'
 import { ClientMark } from '@/components/ClientMark'
-import { SOCIAL_ACCOUNTS, getSocialAccount, socialMetrics, socialRecsFor, socialPlatform, POST_TYPE_LABEL } from '@/lib/social'
+import { socialMetrics, socialRecsFor, socialPlatform, POST_TYPE_LABEL } from '@/lib/social'
+import { useSocial } from '@/context/social'
 import { compact } from '@/lib/format'
 import { Card, Button, Toggle, Segmented } from '@/components/ui/kit'
 import { PlatformLogo } from '@/components/social/PlatformLogo'
@@ -38,12 +39,13 @@ export default function SocialReports() {
   const { brand, brandMonogram, schedules, setSchedule, canWrite } = useWorkspace()
   const logoSrc = useTrimmedLogo(brand.logo) ?? brand.logo ?? undefined
   const paramAcct = params.get('account') || ''
-  const initial = SOCIAL_ACCOUNTS.some((a) => a.id === paramAcct) ? paramAcct : SOCIAL_ACCOUNTS[0].id
+  const { accounts: roster, accountById } = useSocial()
+  const initial = roster.some((a) => a.id === paramAcct) ? paramAcct : roster[0].id
   const [accountId, setAccountId] = useState(initial)
   const [title, setTitle] = useState('Social performance report')
   const [sections, setSections] = useState<Record<SectionKey, boolean>>({ headline: true, channels: true, posts: true, summary: true })
 
-  const account = getSocialAccount(accountId) ?? SOCIAL_ACCOUNTS[0]
+  const account = accountById(accountId) ?? roster[0]
   const m = useMemo(() => socialMetrics(account, range), [account, range])
   const period = reportingPeriod(range)
   const rangeLabel = RANGES.find((r) => r.id === range)!.label
@@ -60,7 +62,7 @@ export default function SocialReports() {
           <div className="text-[13px] font-bold mb-3">Report setup</div>
           <label className="eyebrow">Account</label>
           <div className="mt-2 mb-4 flex flex-col gap-1.5">
-            {SOCIAL_ACCOUNTS.map((a) => (
+            {roster.map((a) => (
               <button key={a.id} onClick={() => setAccountId(a.id)}
                 className={`flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-left transition-colors border ${a.id === accountId ? 'bg-[var(--accent-weak)] border-[color-mix(in_srgb,var(--accent)_22%,transparent)]' : 'border-transparent hover:bg-[var(--surface-2)]'}`}>
                 <ClientMark account={a} className="w-6 h-6 rounded-[6px] text-[10px]" />
