@@ -15,13 +15,13 @@ import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { SourceBadge } from '@/components/social/SourceBadge'
 import { Reveal } from '@/components/ui/disclosure'
 
-/** Facebook and Instagram arrive together through the Meta connect flow; the
- *  other two are not built yet, so they are shown as what they are. */
+/** Facebook and Instagram arrive together through the Meta connect flow.
+ *  LinkedIn has its own. TikTok is not built. */
 const VIA_META: SocialPlatformId[] = ['instagram', 'facebook']
 
 export default function SocialIntegrations() {
   const { isAdmin, canWrite } = useWorkspace()
-  const { accounts, source, connected, metaConfigured, syncing, sync, connectMeta, refresh } = useSocial()
+  const { accounts, source, connected, metaConfigured, linkedinConfigured, syncing, sync, connectMeta, connectLinkedIn, refresh } = useSocial()
   const [params, setParams] = useSearchParams()
   const [lastErrors, setLastErrors] = useState<string[]>([])
 
@@ -29,18 +29,26 @@ export default function SocialIntegrations() {
   useEffect(() => {
     const connectedParam = params.get('connected')
     const problem = params.get('connect')
-    if (connectedParam === 'meta') {
+    if (connectedParam) {
+      const label = connectedParam === 'linkedin' ? 'LinkedIn' : 'Meta'
       const n = Number(params.get('accounts') ?? 0)
       const live = Number(params.get('live') ?? 0)
-      toast.success(`Meta connected — ${n} account${n === 1 ? '' : 's'} imported${live > 0 ? `, ${live} pulling live data` : ''}`)
+      toast.success(`${label} connected — ${n} account${n === 1 ? '' : 's'} imported${live > 0 ? `, ${live} pulling live data` : ''}`)
       void refresh()
     } else if (problem === 'error') {
-      toast.error('Meta connection failed. Check the app credentials and try again.')
+      // The server passes the real reason through: "administers no company
+      // pages" and "not approved for this API" need different responses.
+      const reason = params.get('reason')
+      toast.error(reason ? decodeURIComponent(reason) : 'Connection failed. Check the app credentials and try again.')
+    } else if (problem === 'denied') {
+      toast.error('Authorisation was declined.')
+    } else if (problem === 'linkedin-unconfigured') {
+      toast.error('No LinkedIn app is configured on the server yet.')
     } else if (problem === 'invalid') {
       toast.error('That connect link expired. Try connecting again.')
     }
     if (connectedParam || problem) {
-      params.delete('connected'); params.delete('accounts'); params.delete('live'); params.delete('connect')
+      for (const k of ['connected', 'accounts', 'live', 'connect', 'reason']) params.delete(k)
       setParams(params, { replace: true })
     }
   }, [params, setParams, refresh])
@@ -83,16 +91,23 @@ export default function SocialIntegrations() {
                   <span className="w-[9px] h-[9px] rounded-full" style={{ background: isOn ? 'var(--st-good)' : 'var(--line-2)' }} />
                 </div>
                 <span className="text-[12.5px] font-semibold">{pl.name}</span>
-                {viaMeta ? (
+                {viaMeta || pl.id === 'linkedin' ? (
                   isAdmin && canWrite ? (
-                    <Button variant={isOn ? undefined : 'primary'} className="py-1 px-2 text-[11px]" onClick={connectMeta}>
+                    <Button
+                      variant={isOn ? undefined : 'primary'}
+                      className="py-1 px-2 text-[11px]"
+                      onClick={viaMeta ? connectMeta : connectLinkedIn}
+                      title={pl.id === 'linkedin' && !linkedinConfigured
+                        ? 'No LinkedIn app is configured on the server yet.'
+                        : undefined}
+                    >
                       {isOn ? 'Reconnect' : 'Connect'}
                     </Button>
                   ) : (
                     <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: isOn ? 'var(--st-good)' : 'var(--muted)' }}>{isOn ? 'Connected' : 'Not connected'}</span>
                   )
                 ) : (
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Coming soon</span>
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Not built</span>
                 )}
               </div>
             )
@@ -117,9 +132,16 @@ export default function SocialIntegrations() {
             Setup check
           </a>
           <span className="text-[11.5px] text-[var(--muted)]">
-            Facebook and Instagram connect together through Meta. LinkedIn and TikTok connect once their developer access is approved.
+            Facebook and Instagram connect together through Meta. LinkedIn needs its Community Management API approved by LinkedIn before it returns any data, and only company pages you administer can be connected.
           </span>
         </div>
+
+        {!linkedinConfigured && (
+          <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2 flex items-start gap-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
+            <AlertTriangle size={13} className="mt-0.5 flex-none" style={{ color: 'var(--st-warn)' }} />
+            <span>No LinkedIn app is configured, so LinkedIn cannot connect yet. Set <code>LINKEDIN_CLIENT_ID</code> and <code>LINKEDIN_CLIENT_SECRET</code>, and note that LinkedIn must approve the app for the Community Management API before it returns any statistics.</span>
+          </div>
+        )}
 
         {!metaConfigured && (
           <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2 flex items-start gap-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
