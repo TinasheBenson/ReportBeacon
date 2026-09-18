@@ -8,7 +8,6 @@
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { pool } from './db.js'
-import { seedClientsForWorkspace } from './store.js'
 
 const SESSION_TTL_DAYS = 30
 const MAX_ATTEMPTS = 5
@@ -60,9 +59,9 @@ export async function registerUser(rawEmail: string, password: string, name: str
     const ws = (await client.query("insert into workspaces (agency_name) values ('Your Agency') returning id")).rows[0]
     await client.query('insert into memberships (user_id, workspace_id, role) values ($1, $2, $3)', [user.id, ws.id, 'owner'])
     await client.query('commit')
-    // Session + roster seed happen post-commit so the FK to users is satisfied.
+    // Post-commit so the session's FK to users is satisfied. A new workspace
+    // starts empty: its data arrives by connecting a platform, never by seeding.
     const sessionToken = await createSession(user.id)
-    await seedClientsForWorkspace(ws.id).catch((e) => console.error('seed roster for new workspace failed:', e))
     return { sessionToken }
   } catch (err) {
     await client.query('rollback')

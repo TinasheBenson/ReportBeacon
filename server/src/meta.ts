@@ -17,7 +17,7 @@
 import crypto from 'node:crypto'
 import { pool } from './db.js'
 import { encrypt, decrypt } from './crypto.js'
-import { pullInstagram, pullFacebookPage, isEmpty, type PullResult, type DailyRow, type PostRow } from './metaInsights.js'
+import { pullInstagram, pullFacebookPage, isEmpty, type PullResult } from './metaInsights.js'
 import { GRAPH, GraphError } from './graph.js'
 
 // All trimmed: whitespace pasted into a dashboard variable would be sent to
@@ -32,10 +32,8 @@ const WINDOW_DAYS = 60
 
 function db() { if (!pool) throw new Error('database not configured'); return pool }
 
-/** Where /connect/meta/start sends the browser. Real: Meta's OAuth dialog.
- *  Stub: a local mock consent screen that returns a fake code. */
+/** Where /connect/meta/start sends the browser: Meta's OAuth dialog. */
 export function startAuthUrl(state: string): string {
-  if (!metaEnabled) return `${API_URL}/api/connect/meta/mock?state=${encodeURIComponent(state)}`
   const scope = [
     'pages_show_list', 'pages_read_engagement', 'pages_read_user_content',
     'instagram_basic', 'instagram_manage_insights', 'read_insights',
@@ -70,55 +68,6 @@ async function fetchIdentities(code: string): Promise<Identity[]> {
     }
   }
   return out
-}
-
-/** Stub identities: what a plausible Meta account returns, no app required. */
-function stubIdentities(): Identity[] {
-  return [
-    { name: 'Zuri Kitchen', handle: '@zurikitchen', platform: 'instagram', externalId: 'ig_stub_1', token: 'stub-token-ig-1' },
-    { name: 'Zuri Kitchen', handle: null, platform: 'facebook', externalId: 'fb_stub_1', token: 'stub-token-fb-1' },
-    { name: 'Amara Media', handle: '@amaracreates', platform: 'instagram', externalId: 'ig_stub_2', token: 'stub-token-ig-2' },
-  ]
-}
-
-// ── seeded fallback ──────────────────────────────────────────────────────────
-function rng(seed: number) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646 }
-
-/** A believable 60-day history, shaped exactly like a live pull so the writer
- *  below doesn't care which one it got. */
-function seedPull(seed: number): PullResult {
-  const rnd = rng(seed)
-  const baseFollowers = 8000 + Math.floor(rnd() * 90000)
-  const baseReach = 1500 + Math.floor(rnd() * 12000)
-  const daily: DailyRow[] = []
-  for (let d = WINDOW_DAYS - 1; d >= 0; d--) {
-    const day = new Date(); day.setUTCHours(0, 0, 0, 0); day.setUTCDate(day.getUTCDate() - d)
-    const reach = Math.round(baseReach * (0.7 + rnd() * 0.6))
-    daily.push({
-      date: day.toISOString().slice(0, 10),
-      followers: Math.round(baseFollowers * (1 + (WINDOW_DAYS - 1 - d) * 0.001)),
-      reach,
-      impressions: Math.round(reach * (1.2 + rnd() * 0.5)),
-      engagementRate: +(2.5 + rnd() * 5).toFixed(2),
-    })
-  }
-  const captions = ['Weekend brunch is back', 'Behind the pass', 'New drop is live', 'Your table is ready', 'Story time']
-  const types = ['reel', 'image', 'carousel', 'video', 'story']
-  const posts: PostRow[] = []
-  for (let p = 0; p < 10; p++) {
-    const reach = Math.round(baseReach * (0.4 + rnd() * 2.2))
-    const eng = Math.round(reach * (0.03 + rnd() * 0.06))
-    const posted = new Date(); posted.setUTCDate(posted.getUTCDate() - Math.floor(rnd() * 30))
-    const type = types[p % types.length]
-    posts.push({
-      externalId: `seed_${seed}_${p}`, type, caption: captions[p % captions.length],
-      postedAt: posted.toISOString(), reach, impressions: Math.round(reach * 1.3),
-      likes: Math.round(eng * 0.7), comments: Math.round(eng * 0.1),
-      shares: Math.round(eng * 0.1), saves: Math.round(eng * 0.1),
-      videoViews: type === 'reel' || type === 'video' ? Math.round(reach * 1.7) : null,
-    })
-  }
-  return { daily, posts, followers: daily[daily.length - 1].followers, metricsUsed: [], warnings: [] }
 }
 
 // ── persistence ──────────────────────────────────────────────────────────────
@@ -173,24 +122,26 @@ async function persist(connectionId: string, r: PullResult) {
  */
 export async function syncConnection(conn: {
   id: string; platform: string; external_id: string | null; access_token_enc: Buffer | null
-}): Promise<{ source: 'live' | 'seed'; error?: string }> {
+}): Promise<{ source: 'live' | 'none'; error?: string }> {
   const run = (await db().query('insert into sync_runs (connection_id, status) values ($1,$2) returning id', [conn.id, 'running'])).rows[0]
 
   let result: PullResult | null = null
-  let source: 'live' | 'seed' = 'seed'
   let error: string | undefined
 
-  if (metaEnabled && conn.external_id && conn.access_token_enc) {
+  if (!metaEnabled) {
+    error = 'no Meta app configured (META_APP_ID / META_APP_SECRET)'
+  } else if (!conn.external_id || !conn.access_token_enc) {
+    error = 'connection has no stored credentials — reconnect required'
+  } else {
     try {
       const token = decrypt(conn.access_token_enc)
       const live = conn.platform === 'instagram'
         ? await pullInstagram(conn.external_id, token, WINDOW_DAYS)
         : await pullFacebookPage(conn.external_id, token, WINDOW_DAYS)
       if (isEmpty(live)) {
-        error = 'live pull returned no data for this window'
+        error = 'Meta returned no data for this window'
       } else {
         result = live
-        source = 'live'
       }
     } catch (err) {
       const ge = err as GraphError
@@ -203,25 +154,34 @@ export async function syncConnection(conn: {
     }
   }
 
-  if (!result) result = seedPull(crypto.createHash('md5').update(conn.id).digest().readUInt32BE(0))
+  // No invented numbers. A pull that fails stores nothing and records why, so an
+  // empty chart means "we have no data" rather than quietly showing a figure
+  // that was never real. A stand-in that reaches a client report is worse than
+  // a gap that is obviously a gap.
+  if (!result) {
+    await db().query(
+      `update sync_runs set status='error', finished_at=now(), source='none', error=$1 where id=$2`,
+      [error?.slice(0, 500) ?? 'unknown failure', run.id],
+    ).catch(() => {})
+    return { source: 'none', error }
+  }
 
   try {
     await persist(conn.id, result)
     await db().query(
-      `update platform_connections set last_synced_at=now(), data_source=$2 where id=$1`,
-      [conn.id, source],
+      `update platform_connections set last_synced_at=now(), data_source='live' where id=$1`,
+      [conn.id],
     )
     await db().query(
-      `update sync_runs set status=$1, finished_at=now(), source=$2, metrics=$3::jsonb, warnings=$4::jsonb, error=$5 where id=$6`,
-      [error ? 'degraded' : 'ok', source, JSON.stringify(result.metricsUsed), JSON.stringify(result.warnings),
-        error?.slice(0, 500) ?? null, run.id],
+      `update sync_runs set status='ok', finished_at=now(), source='live', metrics=$1::jsonb, warnings=$2::jsonb, error=null where id=$3`,
+      [JSON.stringify(result.metricsUsed), JSON.stringify(result.warnings), run.id],
     )
   } catch (err) {
     error = `persist failed: ${(err as Error).message}`
     await db().query('update sync_runs set status=$1, finished_at=now(), error=$2 where id=$3',
       ['error', error.slice(0, 500), run.id]).catch(() => {})
   }
-  return { source, error }
+  return { source: 'live', error }
 }
 
 /** Re-sync every connection in a workspace — refreshing real numbers without
@@ -247,11 +207,12 @@ export async function syncWorkspace(workspaceId: string): Promise<{ connections:
 
 /** The full import: identities → accounts + connections (token encrypted) →
  *  a sync per channel. Idempotent; returns how many accounts landed. */
-export async function importFromMeta(workspaceId: string, code: string): Promise<{ accounts: number; mode: 'live' | 'stub'; live: number }> {
-  const mode = metaEnabled ? 'live' : 'stub'
+export async function importFromMeta(workspaceId: string, code: string): Promise<{ accounts: number; mode: 'live'; live: number }> {
+  const mode = 'live' as const
   let identities: Identity[]
   try {
-    identities = metaEnabled ? await fetchIdentities(code) : stubIdentities()
+    if (!metaEnabled) throw new Error('no Meta app configured — set META_APP_ID and META_APP_SECRET')
+    identities = await fetchIdentities(code)
   } catch (err) {
     // A live failure shouldn't strand the user mid-connect; surface it instead.
     throw new Error(`meta import failed (${mode}): ${(err as Error).message}`)
@@ -457,7 +418,7 @@ export async function listAccounts(workspaceId: string) {
       posts: uiPosts,
       lastSyncedMin: syncedValues.length ? Math.min(...syncedValues) : 0,
       /** 'live' if any channel's numbers came from Meta. */
-      dataSource: channelStats.some((c) => c.dataSource === 'live') ? 'live' : 'seed',
+      dataSource: channelStats.some((c) => c.dataSource === 'live') ? 'live' : 'none',
     }
   })
 }

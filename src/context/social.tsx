@@ -7,18 +7,21 @@
  * stats, recent posts). Every derived helper in lib/social.ts — metrics, health,
  * alerts, recommendations — then works on live Meta data unchanged.
  *
- * Signed out, or with nothing connected yet, it falls back to the demo roster so
- * the public showcase and the zero-backend Vercel build keep working.
+ * Signed in, what you see is what Meta returned — nothing else. If no account is
+ * connected, or a pull produced nothing, the face is empty and says so. It never
+ * substitutes invented figures for missing ones: a stand-in that reaches a client
+ * report is worse than a gap that is obviously a gap.
  *
- * `source` says which it is ('live' | 'seed' | 'demo'), and the UI labels seeded
- * or demo numbers rather than passing them off as real.
+ * Signed out, the demo roster still backs the public showcase on the marketing
+ * pages, so the zero-backend build keeps working. `source` distinguishes the
+ * two, and the UI labels the showcase as a showcase.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useApp } from '@/context/app'
 import { apiClient, metaConnectUrl } from '@/lib/apiClient'
 import { SOCIAL_ACCOUNTS, type SocialAccount } from '@/lib/social'
 
-export type SocialSource = 'live' | 'seed' | 'demo'
+export type SocialSource = 'live' | 'empty' | 'demo'
 
 interface SocialCtx {
   accounts: SocialAccount[]
@@ -57,19 +60,15 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     try {
       const res = await apiClient.socialAccounts()
       setMetaConfigured(res.metaConfigured)
-      if (res.accounts?.length) {
-        setAccounts(res.accounts as SocialAccount[])
-        setSource(res.source === 'live' ? 'live' : 'seed')
-      } else {
-        // Nothing connected yet — show the demo roster so the face isn't blank.
-        setAccounts(null)
-        setSource('demo')
-      }
+      // Signed in: show exactly what came back, even when that is nothing.
+      setAccounts((res.accounts ?? []) as SocialAccount[])
+      setSource(res.accounts?.length ? 'live' : 'empty')
       setError(null)
     } catch (err) {
-      // Offline or the API is down: the demo roster keeps the app usable.
-      setAccounts(null)
-      setSource('demo')
+      // The API is unreachable. Report it rather than filling the gap with
+      // numbers that did not come from anywhere.
+      setAccounts([])
+      setSource('empty')
       setError((err as Error).message)
     } finally {
       setLoading(false)
@@ -83,10 +82,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     setSyncing(true)
     try {
       const res = await apiClient.syncSocial()
-      if (res.accounts?.length) {
-        setAccounts(res.accounts as SocialAccount[])
-        setSource(res.live > 0 ? 'live' : 'seed')
-      }
+      setAccounts((res.accounts ?? []) as SocialAccount[])
+      setSource(res.accounts?.length ? 'live' : 'empty')
       setError(null)
       return { live: res.live, errors: res.errors ?? [] }
     } catch (err) {
@@ -98,6 +95,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const value = useMemo<SocialCtx>(() => {
+    // Only the signed-out showcase falls back to the demo roster.
     const list = accounts ?? SOCIAL_ACCOUNTS
     return {
       accounts: list,

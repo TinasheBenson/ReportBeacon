@@ -4,7 +4,6 @@
  * saved reports. Everything is workspace-scoped.
  */
 import { pool } from './db.js'
-import { seedCatalog } from './catalog.js'
 
 function db() {
   if (!pool) throw new Error('database not configured')
@@ -27,17 +26,6 @@ export async function putWorkspaceState(workspaceId: string, state: Record<strin
 
 // ── clients (the demo roster) ─────────────────────────────────────────────────
 /** Seed the roster into a workspace once (idempotent — skips if it already has clients). */
-export async function seedClientsForWorkspace(workspaceId: string): Promise<void> {
-  const existing = await db().query('select 1 from clients where workspace_id = $1 limit 1', [workspaceId])
-  if ((existing.rowCount ?? 0) > 0) return
-  for (const c of seedCatalog()) {
-    await db().query(
-      'insert into clients (workspace_id, client_id, data, importable) values ($1, $2, $3, $4) on conflict do nothing',
-      [workspaceId, c.id, c.data, c.importable],
-    )
-  }
-}
-
 export async function listClients(workspaceId: string): Promise<{ clients: unknown[]; importableIds: string[] }> {
   const r = await db().query(
     'select client_id, data, importable from clients where workspace_id = $1 order by created_at',

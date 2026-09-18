@@ -43,8 +43,8 @@ export default function SocialOverview() {
           <SourceBadge source={source} />
           <span className="text-[11.5px] text-[var(--muted)]">
             {source === 'live' ? 'Pulled from your connected Meta accounts.'
-              : source === 'seed' ? 'Connected, but showing stand-in numbers until a live pull succeeds.'
-              : 'Showcase roster — connect Meta to see your own accounts.'}
+              : source === 'empty' ? 'Nothing pulled yet — connect an account to see real numbers here.'
+              : 'Sample roster for signed-out visitors.'}
           </span>
         </div>
       </Reveal>
