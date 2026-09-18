@@ -18,7 +18,7 @@
  * the right value changes over time; pin it when a deployment needs stability.
  */
 
-export const GRAPH_VERSION = process.env.META_GRAPH_VERSION ?? 'v23.0'
+export const GRAPH_VERSION = process.env.META_GRAPH_VERSION?.trim() || 'v23.0'
 export const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`
 
 export class GraphError extends Error {

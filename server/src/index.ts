@@ -33,10 +33,24 @@ app.disable('x-powered-by')
 app.set('trust proxy', 1)
 app.use(express.json({ limit: '2mb' }))
 
-const prod = process.env.NODE_ENV === 'production'
-const APP_URL = process.env.APP_URL ?? 'http://localhost:5173'
+/**
+ * Read an environment variable, trimming surrounding whitespace.
+ *
+ * A value pasted into a dashboard can pick up a stray tab or newline, and the
+ * result is a failure with no useful symptom: a tab in COOKIE_DOMAIN made the
+ * cookie library reject the domain, so every sign-in returned a 500 and the app
+ * said only "Could not sign in". Trimming costs nothing and removes a whole
+ * class of invisible misconfiguration.
+ */
+function env(name: string): string | undefined {
+  const v = process.env[name]?.trim()
+  return v ? v : undefined
+}
+
+const prod = process.env.NODE_ENV?.trim() === 'production'
+const APP_URL = env('APP_URL') ?? 'http://localhost:5173'
 const COOKIE = 'rb_session'
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined
+const COOKIE_DOMAIN = env('COOKIE_DOMAIN')
 
 /**
  * CORS. Credentialed requests need an exact Access-Control-Allow-Origin, so the
@@ -57,8 +71,8 @@ const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined
  * Which is why a rejected origin is logged, once each. Without it the only
  * evidence is an absence, and you cannot debug an absence.
  */
-const origins = (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-const originSuffixes = (process.env.CORS_ORIGIN_SUFFIXES ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+const origins = (env('CORS_ORIGINS') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+const originSuffixes = (env('CORS_ORIGIN_SUFFIXES') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 const rejectedOrigins = new Set<string>()
 
 function originAllowed(origin: string): boolean {

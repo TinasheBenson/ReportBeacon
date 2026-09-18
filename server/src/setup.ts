@@ -48,11 +48,13 @@ function domainCovers(cookieDomain: string, h: string | null): boolean {
 
 export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check[]> {
   const checks: Check[] = []
-  const APP_URL = process.env.APP_URL
-  const API_URL = process.env.API_URL
+  // Trimmed the same way the server reads them, so the check reports what the
+  // app actually uses rather than the raw, possibly whitespace-padded value.
+  const APP_URL = process.env.APP_URL?.trim()
+  const API_URL = process.env.API_URL?.trim()
   const CORS = (process.env.CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN
-  const REDIRECT = process.env.META_REDIRECT_URI
+  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN?.trim()
+  const REDIRECT = process.env.META_REDIRECT_URI?.trim()
 
   // ── database ──────────────────────────────────────────────────────────────
   if (!dbConfigured) {

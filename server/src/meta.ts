@@ -20,10 +20,12 @@ import { encrypt, decrypt } from './crypto.js'
 import { pullInstagram, pullFacebookPage, isEmpty, type PullResult, type DailyRow, type PostRow } from './metaInsights.js'
 import { GRAPH, GraphError } from './graph.js'
 
-const APP_ID = process.env.META_APP_ID
-const APP_SECRET = process.env.META_APP_SECRET
-const API_URL = process.env.API_URL ?? 'http://localhost:8080'
-const REDIRECT = process.env.META_REDIRECT_URI ?? `${API_URL}/api/connect/meta/callback`
+// All trimmed: whitespace pasted into a dashboard variable would be sent to
+// Meta verbatim, and a redirect_uri that differs by one character is rejected.
+const APP_ID = process.env.META_APP_ID?.trim()
+const APP_SECRET = process.env.META_APP_SECRET?.trim()
+const API_URL = process.env.API_URL?.trim() || 'http://localhost:8080'
+const REDIRECT = process.env.META_REDIRECT_URI?.trim() || `${API_URL}/api/connect/meta/callback`
 export const metaEnabled = !!(APP_ID && APP_SECRET)
 
 const WINDOW_DAYS = 60

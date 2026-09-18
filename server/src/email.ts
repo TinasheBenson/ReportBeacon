@@ -3,8 +3,8 @@
  * transport that logs the link to the console, so magic-link auth is fully
  * testable locally without an email provider.
  */
-const FROM = process.env.EMAIL_FROM ?? 'ReportBeacon <login@tinashebenson.com>'
-const RESEND_KEY = process.env.RESEND_API_KEY
+const FROM = process.env.EMAIL_FROM?.trim() || 'ReportBeacon <login@tinashebenson.com>'
+const RESEND_KEY = process.env.RESEND_API_KEY?.trim()
 
 export const emailConfigured = !!RESEND_KEY
 

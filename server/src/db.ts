@@ -6,7 +6,7 @@
  */
 import { Pool } from 'pg'
 
-const url = process.env.DATABASE_URL
+const url = process.env.DATABASE_URL?.trim()
 
 export const pool = url
   ? new Pool({
