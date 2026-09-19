@@ -167,7 +167,16 @@ export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check
       fix: 'Create a Meta app, then set META_APP_ID, META_APP_SECRET and META_REDIRECT_URI on the api service. See server/META_SETUP.md.',
     })
   } else {
+    const configId = process.env.META_LOGIN_CONFIG_ID?.trim()
     checks.push({ name: 'Meta app', level: 'pass', detail: `Configured. Calls go to Graph ${GRAPH_VERSION}.` })
+    checks.push(configId ? {
+      name: 'Meta login product', level: 'pass',
+      detail: `Using Facebook Login for Business with configuration ${configId}. Permissions come from that configuration in the App Dashboard, not from this server.`,
+    } : {
+      name: 'Meta login product', level: 'warn',
+      detail: 'Sending a scope list, which is the classic Facebook Login flow. A Business-type app normally uses Facebook Login for Business, which expects a configuration id instead and will not show the permissions you expect without one.',
+      fix: 'If the connect dialog refuses to load or grants no permissions: in the App Dashboard add the "Facebook Login for Business" product, create a business login configuration with the permissions listed in server/src/meta.ts (SCOPES), and set its id as META_LOGIN_CONFIG_ID on the api service. If classic Facebook Login is what the app uses, ignore this.',
+    })
     const expected = `${API_URL ?? ''}/api/connect/meta/callback`
     checks.push(REDIRECT === expected ? {
       name: 'Meta redirect URI', level: 'pass', detail: REDIRECT,
@@ -175,6 +184,15 @@ export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check
       name: 'Meta redirect URI', level: 'fail',
       detail: `META_REDIRECT_URI is "${REDIRECT ?? 'unset'}" but this API expects "${expected}". Meta rejects a mismatch, so connecting will fail.`,
       fix: `Set META_REDIRECT_URI to ${expected} on the api service AND add exactly that URL to the app’s Valid OAuth Redirect URIs in the Meta dashboard.`,
+    })
+  }
+
+  if (metaEnabled && API_URL) {
+    const apiHost = host(API_URL)
+    checks.push({
+      name: 'Meta App Domains', level: 'warn',
+      detail: `Meta checks two separate things, and this one cannot be verified from here: "${apiHost}" must be listed in App Domains (App settings \u2192 Basic) as well as the callback being in Valid OAuth Redirect URIs.`,
+      fix: `Subdomains are NOT covered by listing the parent domain \u2014 "${apiHost}" has to appear in its own right. Without it the dialog fails with "Can't load URL: The domain of this URL isn't included in the app's domains".`,
     })
   }
 

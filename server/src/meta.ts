@@ -31,22 +31,61 @@ const APP_ID = process.env.META_APP_ID?.trim()
 const APP_SECRET = process.env.META_APP_SECRET?.trim()
 const API_URL = process.env.API_URL?.trim() || 'http://localhost:8080'
 const REDIRECT = process.env.META_REDIRECT_URI?.trim() || `${API_URL}/api/connect/meta/callback`
+/** A Facebook Login for Business "configuration id". Set this when the app uses
+ *  Facebook Login for Business; leave it unset for classic Facebook Login. */
+const LOGIN_CONFIG_ID = process.env.META_LOGIN_CONFIG_ID?.trim()
 export const metaEnabled = !!(APP_ID && APP_SECRET)
 
 const WINDOW_DAYS = 60
 
 function db() { if (!pool) throw new Error('database not configured'); return pool }
 
-/** Where /connect/meta/start sends the browser: Meta's OAuth dialog. */
+/**
+ * Where /connect/meta/start sends the browser: Meta's OAuth dialog.
+ *
+ * Meta has two login products and they take permissions differently.
+ *
+ *  - **Facebook Login** (consumer apps) takes a `scope` list in this URL.
+ *  - **Facebook Login for Business** (which is what a Business-type app gets)
+ *    takes a `config_id` instead. The permissions live in a "business login
+ *    configuration" created in the App Dashboard, and Meta's guidance is to
+ *    send the configuration id rather than scopes.
+ *
+ * Scope is still accepted alongside a config_id, but the configuration wins, so
+ * sending both is misleading rather than a useful belt-and-braces. When
+ * META_LOGIN_CONFIG_ID is set we send the configuration and drop the scope
+ * list; without it we fall back to the classic scope flow.
+ *
+ * Which one an app needs is not something the code can detect — it depends on
+ * which product was added in the dashboard — so this is configuration, not a
+ * guess.
+ */
 export function startAuthUrl(state: string): string {
-  const scope = [
-    'pages_show_list', 'pages_read_engagement', 'pages_read_user_content',
-    'instagram_basic', 'instagram_manage_insights', 'read_insights',
-    'business_management',
-  ].join(',')
-  const p = new URLSearchParams({ client_id: APP_ID!, redirect_uri: REDIRECT, state, scope, response_type: 'code' })
-  return `https://www.facebook.com/dialog/oauth?${p}`
+  const params: Record<string, string> = {
+    client_id: APP_ID!,
+    redirect_uri: REDIRECT,
+    state,
+    response_type: 'code',
+  }
+  if (LOGIN_CONFIG_ID) {
+    params.config_id = LOGIN_CONFIG_ID
+  } else {
+    params.scope = SCOPES.join(',')
+  }
+  return `https://www.facebook.com/dialog/oauth?${new URLSearchParams(params)}`
 }
+
+/** The permissions the pull actually needs. Used for the classic scope flow,
+ *  and the list to tick when building a business login configuration. */
+export const SCOPES = [
+  'pages_show_list',          // discover which Pages the user administers
+  'pages_read_engagement',    // Page insights
+  'pages_read_user_content',  // Page posts
+  'instagram_basic',          // the linked IG account and its media
+  'instagram_manage_insights', // IG insights
+  'read_insights',            // historical insights
+  'business_management',      // Pages owned via a Business portfolio
+]
 
 interface Identity { name: string; handle: string | null; platform: 'instagram' | 'facebook'; externalId: string; token: string }
 
