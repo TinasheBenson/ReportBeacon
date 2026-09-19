@@ -75,6 +75,7 @@ export async function pullInstagram(igId: string, token: string, days = 60, base
   // Daily series, 30-day chunks. `views` superseded `impressions` in v22.0;
   // ask for both and take whichever this version still answers.
   const newFollows = new Map<string, number>()
+  const windowTotals = new Map<string, number>()
   for (const w of windows(days, 30)) {
     const got = await insights(node(igId), ['reach', 'views', 'impressions', 'follower_count', 'total_interactions'],
       { period: 'day', since: w.since, until: w.until }, token)
@@ -91,21 +92,66 @@ export async function pullInstagram(igId: string, token: string, days = 60, base
       if (r) r.engagementRate = engagementRate(v, r.reach)
     }
     for (const name of got.keys()) if (!metricsUsed.includes(name)) metricsUsed.push(name)
+
+    // Some metrics now answer only as a single figure for the whole window
+    // rather than a daily series. That figure is real and worth reporting, but
+    // it is NOT a curve: dividing it across the days would invent a shape the
+    // data never had. So it is recorded as a note and the daily column stays
+    // empty, which is the honest representation of "we know the total, not the
+    // distribution".
+    for (const [name, entry] of got) {
+      if (entry.values?.length) continue
+      const total = entry.total_value?.value
+      if (typeof total === 'number') windowTotals.set(name, (windowTotals.get(name) ?? 0) + total)
+    }
+  }
+  for (const [name, total] of windowTotals) {
+    warnings.push(`ig: "${name}" answered as a ${days}-day total (${total}) rather than a daily series, so the daily column for it is empty`)
   }
   for (const want of ['reach', 'views', 'total_interactions']) {
     if (!metricsUsed.includes(want)) warnings.push(`ig: "${want}" unavailable on this Graph version`)
+  }
+  // follower_count is a documented exception rather than a deprecation: Meta
+  // withholds it below 100 followers. Saying so stops it being chased as a bug.
+  if (!metricsUsed.includes('follower_count')) {
+    warnings.push(followers != null && followers < 100
+      ? `ig: "follower_count" needs at least 100 followers (this account has ${followers}), so the follower history is flat at today's total`
+      : 'ig: "follower_count" unavailable, so the follower history is flat at today\'s total')
   }
 
   followerCurve(rows, followers, newFollows)
 
   // Recent media + per-post insights.
+  //
+  // The window is applied here rather than as a `since` parameter. Asking Meta
+  // to filter makes an empty result ambiguous — an account that has not posted
+  // in 60 days and an account whose media edge ignored the filter look
+  // identical, and the first live sync hit exactly that ambiguity. Fetching
+  // newest-first and filtering locally means we can tell the two apart and say
+  // which it was.
   const posts: PostRow[] = []
-  const since = unix(new Date(Date.now() - days * DAY))
+  const cutoff = Date.now() - days * DAY
   try {
     const media = await paged<any>(node(`${igId}/media`), {
       fields: 'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink',
-      since, limit: 50,
+      limit: 50,
     }, token, { maxPages: 6, maxItems: 120 })
+
+    const inWindow = media.filter((m: any) => {
+      const t = Date.parse(m?.timestamp ?? '')
+      return Number.isNaN(t) ? true : t >= cutoff
+    })
+    if (!media.length) {
+      warnings.push('ig: this account has no media at all')
+    } else if (!inWindow.length) {
+      const newest = media
+        .map((m: any) => Date.parse(m?.timestamp ?? ''))
+        .filter((t: number) => !Number.isNaN(t))
+        .sort((a: number, b: number) => b - a)[0]
+      warnings.push(newest
+        ? `ig: ${media.length} media found, none in the last ${days} days (most recent was ${Math.floor((Date.now() - newest) / DAY)} days ago)`
+        : `ig: ${media.length} media found, none in the last ${days} days`)
+    }
 
     // The first media teaches us which per-media metrics this account serves;
     // every later one asks for just those, so a retired metric costs one slow
@@ -113,7 +159,7 @@ export async function pullInstagram(igId: string, token: string, days = 60, base
     let mediaMetrics = ['reach', 'views', 'saved', 'shares', 'total_interactions']
     let learned = false
 
-    for (const m of media) {
+    for (const m of inWindow) {
       const type = igType(m)
       const row: PostRow = {
         externalId: String(m.id),

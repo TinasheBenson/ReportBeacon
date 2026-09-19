@@ -153,15 +153,45 @@ export async function insights(
   }
 
   // Slow path: one metric at a time, skipping the ones this version no longer has.
+  //
+  // A metric rejected on its own gets one more chance with `metric_type=total_value`.
+  // Meta moved several Instagram metrics — `views`, `total_interactions`, `likes`,
+  // `shares`, `saves` — to that form, where they return a single figure for the
+  // window instead of a daily series, and asking for them the old way is rejected
+  // as an unsupported metric rather than as a changed one. The error looks
+  // identical to a retirement, so the only way to tell the two apart is to ask
+  // again the other way; the first live sync did exactly this and reported
+  // `views` and `total_interactions` as simply unavailable, which is what
+  // prompted this.
+  //
+  // The retry costs one request per genuinely-dead metric and nothing at all for
+  // a healthy one, and `metricsUsed` records which form answered — so production
+  // tells us the truth rather than us guessing from documentation.
   for (const m of metrics) {
     try {
       const res = await graph<{ data?: InsightEntry[] }>(`${nodeId}/insights`, { ...params, metric: m }, token)
+      absorb(res.data)
+      continue
+    } catch (err) {
+      const ge = err as GraphError
+      if (ge.isAuth) throw err
+      if (!ge.isBadMetric) throw err
+    }
+    try {
+      // `period` is meaningless for a single window total and Meta rejects the
+      // combination, so the retry drops it and keeps only the range.
+      const { period: _period, ...range } = params
+      const res = await graph<{ data?: InsightEntry[] }>(
+        `${nodeId}/insights`,
+        { ...range, metric: m, metric_type: 'total_value' },
+        token,
+      )
       absorb(res.data)
     } catch (err) {
       const ge = err as GraphError
       if (ge.isAuth) throw err
       if (!ge.isBadMetric) throw err
-      // Retired on this version — expected, keep going.
+      // Gone in both forms — expected on a retirement, keep going.
     }
   }
   onResolved?.([...got.keys()])

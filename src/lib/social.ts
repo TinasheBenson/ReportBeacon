@@ -215,11 +215,24 @@ export function socialMetrics(a: SocialAccount, range: RangeId): SocialMetrics {
   }
 }
 
+/** Days since the most recent post, or null when we hold no posts for this
+ *  account at all.
+ *
+ *  Null is the point. This used to fall back to 99, which then reached the UI
+ *  as "No post in 99 days" — a specific number nobody had measured, for an
+ *  account we simply had no posts for. A gap we cannot measure has to read as
+ *  unknown, not as a confident figure. */
+function postGap(a: SocialAccount): number | null {
+  return a.posts.length ? Math.min(...a.posts.map((p) => p.daysAgo)) : null
+}
+
 export type Health = 'good' | 'watch' | 'risk'
 export function socialHealth(a: SocialAccount): Health {
   const m = socialMetrics(a, '30d')
-  const gap = a.posts.length ? Math.min(...a.posts.map((p) => p.daysAgo)) : 99
-  if (a.followersDelta < 0 || m.erDelta < -0.5 || gap > 7) return 'risk'
+  const gap = postGap(a)
+  // No posts at hand is still a quiet feed, so it lands in the same bucket as a
+  // long gap — we just don't claim to know how long.
+  if (a.followersDelta < 0 || m.erDelta < -0.5 || gap === null || gap > 7) return 'risk'
   if (m.erDelta < 0 || m.posts < 8 || gap > 4) return 'watch'
   return 'good'
 }
@@ -231,10 +244,11 @@ export interface SocialAlert {
 export function socialAlertsFor(a: SocialAccount): SocialAlert[] {
   const out: SocialAlert[] = []
   const m = socialMetrics(a, '30d')
-  const gap = a.posts.length ? Math.min(...a.posts.map((p) => p.daysAgo)) : 99
+  const gap = postGap(a)
   if (a.followersDelta < 0) out.push({ id: a.id + '-foll', accountId: a.id, accountName: a.name, severity: 'serious', title: `Followers down ${Math.abs(a.followersDelta).toFixed(1)}% this period`, detail: 'Losing audience faster than new follows come in', tag: 'At risk' })
   if (m.erDelta < -0.5) out.push({ id: a.id + '-eng', accountId: a.id, accountName: a.name, severity: 'warning', title: `Engagement rate down ${Math.abs(m.erDelta).toFixed(1)} pts`, detail: 'Recent posts are landing softer than usual', tag: 'Watch' })
-  if (gap > 5) out.push({ id: a.id + '-gap', accountId: a.id, accountName: a.name, severity: 'warning', title: `No post in ${gap} days`, detail: 'Consistency drives reach; the feed has gone quiet', tag: 'Action' })
+  if (gap === null) out.push({ id: a.id + '-gap', accountId: a.id, accountName: a.name, severity: 'warning', title: 'No posts found for this account', detail: 'Nothing has been imported to report on — either the feed is quiet or the posts did not come through', tag: 'Action' })
+  else if (gap > 5) out.push({ id: a.id + '-gap', accountId: a.id, accountName: a.name, severity: 'warning', title: `No post in ${gap} days`, detail: 'Consistency drives reach; the feed has gone quiet', tag: 'Action' })
   return out
 }
 export function allSocialAlerts(accounts: SocialAccount[]): SocialAlert[] {
