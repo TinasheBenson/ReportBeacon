@@ -1,9 +1,16 @@
 # Meta app setup (Facebook + Instagram)
 
+> **Connecting Instagram only?** You probably want
+> [`INSTAGRAM_SETUP.md`](./INSTAGRAM_SETUP.md) instead. The route below needs
+> advanced access, and that needs Business Verification; Instagram Login does
+> not. This document is what you need for **Facebook Pages**, and for having
+> Instagram and its Page arrive together.
+
 This is the one thing only you can do. It gets us an **App ID** and **App
 Secret** so ReportBeacon can pull real Instagram and Facebook numbers. About 15
-minutes. Until it's done, the connect flow runs in a stub that imports sample
-accounts, so nothing is blocked on your side.
+minutes. Until it's done, Connect has nothing to connect to — there is no stub
+and no sample data, so the Social pages stay empty rather than showing figures
+that did not come from anywhere.
 
 ## Before you start
 
@@ -45,9 +52,9 @@ Send me:
   password.
 - Confirm the redirect URI above matches.
 
-I'll set `META_APP_ID`, `META_APP_SECRET`, and `META_REDIRECT_URI` and switch the
-connect flow from stub to live. We test with one of your real accounts, and I
-tune the live insights pull against real responses.
+I'll set `META_APP_ID`, `META_APP_SECRET` and `META_REDIRECT_URI`. We test with
+one of your real accounts, and I tune the live insights pull against real
+responses.
 
 ## One thing to know about going wide
 
@@ -115,6 +122,7 @@ Two things follow from that:
 4. Spot-check one figure against Meta's own Insights UI before sending a client
    report off the back of it.
 
-If the app shows a **Sample data** badge, the connect succeeded but the live pull
-did not — the numbers on screen are stand-ins. That is intentional: seeded data
-is always labelled rather than passed off as real.
+If the Social pages are empty after a successful connect, the pull returned
+nothing and the sync run says why. That is intentional: a failed pull stores
+nothing rather than filling the gap, because a stand-in that reaches a client
+report is worse than a gap that is obviously a gap.

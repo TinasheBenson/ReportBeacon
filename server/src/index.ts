@@ -24,10 +24,11 @@ import {
 } from './store.js'
 import { emailConfigured } from './email.js'
 import {
-  metaEnabled, startAuthUrl, importFromMeta, importFromLinkedIn,
+  metaEnabled, startAuthUrl, importFromMeta, importFromLinkedIn, importFromInstagram,
   listAccounts, syncWorkspace, listSyncRuns,
 } from './meta.js'
 import { linkedinEnabled, startAuthUrl as linkedinAuthUrl } from './linkedin.js'
+import { instagramLoginEnabled, startAuthUrl as instagramAuthUrl } from './instagramLogin.js'
 import { signState, verifyState } from './crypto.js'
 import { setupCheckHandler } from './setup.js'
 
@@ -307,6 +308,37 @@ app.get('/api/connect/meta/callback', async (req: Request, res: Response) => {
   }
 })
 
+// ── Instagram connect (Instagram Login) ──────────────────────────────────────
+// The other door to Instagram. Meta's flow above needs advanced access, which
+// needs Business Verification; this one works at standard access but reaches
+// Instagram only — no Facebook Page comes with it.
+app.get('/api/connect/instagram/start', requireAuth, async (req: Request, res: Response) => {
+  if (!instagramLoginEnabled) {
+    return res.redirect(`${APP_URL}/app/social/integrations?connect=instagram-unconfigured`)
+  }
+  const workspaceId = await firstWorkspaceId(req.user!.id)
+  if (!workspaceId) return res.status(400).json({ error: 'no workspace' })
+  res.redirect(instagramAuthUrl(signState({ w: workspaceId, u: req.user!.id })))
+})
+
+app.get('/api/connect/instagram/callback', async (req: Request, res: Response) => {
+  const state = verifyState<{ w: string }>(String(req.query.state ?? ''))
+  const code = String(req.query.code ?? '')
+  // Instagram reports a decline on the query string, the same way LinkedIn does.
+  if (req.query.error) return res.redirect(`${APP_URL}/app/social/integrations?connect=denied`)
+  if (!state || !code) return res.redirect(`${APP_URL}/app/social/integrations?connect=invalid`)
+  try {
+    const { accounts, live } = await importFromInstagram(state.w, code)
+    res.redirect(`${APP_URL}/app/social/integrations?connected=instagram&accounts=${accounts}&live=${live}`)
+  } catch (err) {
+    console.error('instagram import:', err)
+    // "not a professional account" and "redirect_uri not registered" want very
+    // different responses from the user, so pass the real message through.
+    const msg = encodeURIComponent(String((err as Error).message).slice(0, 200))
+    res.redirect(`${APP_URL}/app/social/integrations?connect=error&reason=${msg}`)
+  }
+})
+
 // ── LinkedIn connect ─────────────────────────────────────────────────────────
 // Mirrors the Meta flow. LinkedIn's Community Management API is a vetted
 // product, so until the app is approved these endpoints exist but every call
@@ -351,6 +383,7 @@ app.get('/api/social/accounts', requireAuth, async (req: Request, res: Response)
     // off as real.
     metaConfigured: metaEnabled,
     linkedinConfigured: linkedinEnabled,
+    instagramConfigured: instagramLoginEnabled,
     source: accounts.some((a) => a.dataSource === 'live') ? 'live' : 'none',
   })
 })

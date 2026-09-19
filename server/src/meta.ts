@@ -1,14 +1,15 @@
 /**
- * Meta (Facebook + Instagram) connection, sync and read.
+ * Connection, sync and read — the workspace side of every platform.
  *
- * Three modes of honesty about where numbers come from:
+ * Despite the filename this is now the hub for all three connectors: Meta
+ * (Facebook Pages and the Instagram accounts attached to them), Instagram Login
+ * (Instagram on its own, via `instagramLogin.ts`), and LinkedIn. They differ
+ * only in how a token is obtained and which host spends it; everything after
+ * that — storage, the sync loop, the shape the Social face reads — is shared.
  *
- *  - **live** — META_APP_ID/SECRET are set, OAuth is real, and the metrics are
- *    pulled from the Graph API by `metaInsights.ts`.
- *  - **seed** — no Meta app configured, or a live pull returned nothing. A
- *    synthetic 60-day history stands in so the connect → import → read pipeline
- *    stays exercisable. Every connection records which it is (`data_source`),
- *    and the API reports it, so seeded numbers are never mistaken for real ones.
+ * Numbers are either live or absent. A pull that fails stores nothing and
+ * records why on the sync run, so an empty chart means "we have no data" rather
+ * than a figure that was never real.
  *
  * Importing is idempotent: accounts, connections and posts upsert against the
  * natural keys added in migration 003, so re-connecting or re-syncing refreshes
@@ -23,6 +24,10 @@ import {
   pullOrganization, linkedinEnabled, LinkedInError,
   exchangeCode as liExchangeCode, fetchOrganizations as liFetchOrganizations,
 } from './linkedin.js'
+import {
+  instagramLoginEnabled, IG_API_BASE,
+  exchangeCode as igExchangeCode, fetchIdentity as igFetchIdentity, refreshIfStale as igRefreshIfStale,
+} from './instagramLogin.js'
 import { GRAPH, GraphError } from './graph.js'
 
 // All trimmed: whitespace pasted into a dashboard variable would be sent to
@@ -160,37 +165,71 @@ async function persist(connectionId: string, r: PullResult) {
 }
 
 /**
- * Sync one connection: pull live if we can, fall back to the seed if we can't,
- * and record on the sync run which it was and what Meta actually answered.
+ * Sync one connection: pull it live, and record on the sync run what the
+ * platform actually answered — or, when it answered nothing, why.
  * Never throws — a dead channel shouldn't strand the other channels' data.
  */
 export async function syncConnection(conn: {
   id: string; platform: string; external_id: string | null; access_token_enc: Buffer | null
+  /** Which API issued the token. Older rows predate the column; they all came
+   *  through the Meta flow, which is what the migration's default says. */
+  provider?: string | null
+  token_expires_at?: Date | null
 }): Promise<{ source: 'live' | 'none'; error?: string }> {
   const run = (await db().query('insert into sync_runs (connection_id, status) values ($1,$2) returning id', [conn.id, 'running'])).rows[0]
 
   let result: PullResult | null = null
   let error: string | undefined
 
-  const isLinkedIn = conn.platform === 'linkedin'
-  const configured = isLinkedIn ? linkedinEnabled : metaEnabled
+  // The provider decides which API the token can be spent at, not the platform:
+  // an Instagram connection reads from graph.instagram.com or graph.facebook.com
+  // depending on which door it came through, and the wrong host rejects it.
+  const provider = conn.provider ?? (conn.platform === 'linkedin' ? 'linkedin' : 'meta')
+  const isLinkedIn = provider === 'linkedin'
+  const isInstagramLogin = provider === 'instagram_login'
+  const label = isLinkedIn ? 'LinkedIn' : isInstagramLogin ? 'Instagram' : 'Meta'
+  const configured = isLinkedIn ? linkedinEnabled : isInstagramLogin ? instagramLoginEnabled : metaEnabled
 
   if (!configured) {
     error = isLinkedIn
       ? 'no LinkedIn app configured (LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET)'
-      : 'no Meta app configured (META_APP_ID / META_APP_SECRET)'
+      : isInstagramLogin
+        ? 'no Instagram app configured (INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET)'
+        : 'no Meta app configured (META_APP_ID / META_APP_SECRET)'
   } else if (!conn.external_id || !conn.access_token_enc) {
     error = 'connection has no stored credentials — reconnect required'
   } else {
     try {
-      const token = decrypt(conn.access_token_enc)
+      let token = decrypt(conn.access_token_enc)
+
+      // Instagram Login tokens expire 60 days after they are issued and can
+      // only be refreshed while still valid. Doing it here means any workspace
+      // that syncs at all stays connected; a failure to refresh is not fatal,
+      // because the current token still has days left on it.
+      if (isInstagramLogin) {
+        try {
+          const fresh = await igRefreshIfStale(token, conn.token_expires_at ?? null)
+          if (fresh) {
+            token = fresh.token
+            await db().query(
+              'update platform_connections set access_token_enc=$1, token_expires_at=$2 where id=$3',
+              [encrypt(fresh.token), fresh.expiresAt, conn.id],
+            )
+          }
+        } catch (err) {
+          console.warn(`instagram token refresh for ${conn.id}:`, (err as Error).message)
+        }
+      }
+
       const live = isLinkedIn
         ? await pullOrganization(conn.external_id, token, WINDOW_DAYS)
-        : conn.platform === 'instagram'
-          ? await pullInstagram(conn.external_id, token, WINDOW_DAYS)
-          : await pullFacebookPage(conn.external_id, token, WINDOW_DAYS)
+        : isInstagramLogin
+          ? await pullInstagram(conn.external_id, token, WINDOW_DAYS, IG_API_BASE)
+          : conn.platform === 'instagram'
+            ? await pullInstagram(conn.external_id, token, WINDOW_DAYS)
+            : await pullFacebookPage(conn.external_id, token, WINDOW_DAYS)
       if (isEmpty(live)) {
-        error = `${isLinkedIn ? 'LinkedIn' : 'Meta'} returned no data for this window`
+        error = `${label} returned no data for this window`
       } else {
         result = live
       }
@@ -241,7 +280,7 @@ export async function syncConnection(conn: {
  *  sending the user back through OAuth. */
 export async function syncWorkspace(workspaceId: string): Promise<{ connections: number; live: number; errors: string[] }> {
   const conns = (await db().query(
-    `select pc.id, pc.platform, pc.external_id, pc.access_token_enc
+    `select pc.id, pc.platform, pc.provider, pc.external_id, pc.access_token_enc, pc.token_expires_at
        from platform_connections pc
        join social_accounts sa on sa.id = pc.social_account_id
       where sa.workspace_id = $1`,
@@ -288,11 +327,11 @@ export async function importFromMeta(workspaceId: string, code: string): Promise
     count++
     for (const ch of channels) {
       const conn = (await db().query(
-        `insert into platform_connections (social_account_id, platform, external_id, access_token_enc, status)
-         values ($1,$2,$3,$4,'connected')
+        `insert into platform_connections (social_account_id, platform, provider, external_id, access_token_enc, status)
+         values ($1,$2,'meta',$3,$4,'connected')
          on conflict (social_account_id, platform, external_id) do update set
-           access_token_enc = excluded.access_token_enc, status = 'connected'
-         returning id, platform, external_id, access_token_enc`,
+           access_token_enc = excluded.access_token_enc, provider = 'meta', status = 'connected'
+         returning id, platform, provider, external_id, access_token_enc, token_expires_at`,
         [acct.id, ch.platform, ch.externalId, encrypt(ch.token)],
       )).rows[0]
       const r = await syncConnection(conn)
@@ -330,19 +369,62 @@ export async function importFromLinkedIn(workspaceId: string, code: string): Pro
     )).rows[0]
     count++
     const conn = (await db().query(
-      `insert into platform_connections (social_account_id, platform, external_id, access_token_enc, token_expires_at, status)
-       values ($1,'linkedin',$2,$3,$4,'connected')
+      `insert into platform_connections (social_account_id, platform, provider, external_id, access_token_enc, token_expires_at, status)
+       values ($1,'linkedin','linkedin',$2,$3,$4,'connected')
        on conflict (social_account_id, platform, external_id) do update set
          access_token_enc = excluded.access_token_enc,
          token_expires_at = excluded.token_expires_at,
+         provider = 'linkedin',
          status = 'connected'
-       returning id, platform, external_id, access_token_enc`,
+       returning id, platform, provider, external_id, access_token_enc, token_expires_at`,
       [acct.id, org.externalId, encrypt(org.token), org.expiresAt],
     )).rows[0]
     const r = await syncConnection(conn)
     if (r.source === 'live') live++
   }
   return { accounts: count, live }
+}
+
+/**
+ * Connect one Instagram account through Instagram Login.
+ *
+ * Simpler than the other two imports because Instagram Login authorises exactly
+ * one account per consent: there is no Page roster to walk and no list of
+ * organizations to filter. The upsert keys are the same ones the Meta path uses,
+ * so connecting an account here that was previously connected via Facebook
+ * refreshes that same row — including its `provider`, which is what makes the
+ * next sync call the right API with the new token rather than the old host with
+ * a token it will reject.
+ */
+export async function importFromInstagram(workspaceId: string, code: string): Promise<{ accounts: number; live: number }> {
+  if (!instagramLoginEnabled) {
+    throw new Error('no Instagram app configured — set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET')
+  }
+
+  const token = await igExchangeCode(code)
+  const me = await igFetchIdentity(token)
+
+  const acct = (await db().query(
+    `insert into social_accounts (workspace_id, name, handle) values ($1,$2,$3)
+     on conflict (workspace_id, name) do update set handle = coalesce(excluded.handle, social_accounts.handle)
+     returning id`,
+    [workspaceId, me.name, me.handle],
+  )).rows[0]
+
+  const conn = (await db().query(
+    `insert into platform_connections (social_account_id, platform, provider, external_id, access_token_enc, token_expires_at, status)
+     values ($1,'instagram','instagram_login',$2,$3,$4,'connected')
+     on conflict (social_account_id, platform, external_id) do update set
+       access_token_enc = excluded.access_token_enc,
+       token_expires_at = excluded.token_expires_at,
+       provider = 'instagram_login',
+       status = 'connected'
+     returning id, platform, provider, external_id, access_token_enc, token_expires_at`,
+    [acct.id, me.externalId, encrypt(me.token), me.expiresAt],
+  )).rows[0]
+
+  const r = await syncConnection(conn)
+  return { accounts: 1, live: r.source === 'live' ? 1 : 0 }
 }
 
 // ── read: the Social face's shape ────────────────────────────────────────────

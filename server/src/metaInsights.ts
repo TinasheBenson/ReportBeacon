@@ -43,7 +43,20 @@ function igType(m: any): string {
   return 'image'
 }
 
-export async function pullInstagram(igId: string, token: string, days = 60): Promise<PullResult> {
+/**
+ * An Instagram professional account's last `days` of numbers.
+ *
+ * `base` exists because the same account is reachable through two different
+ * APIs. A connection made through Facebook Login is read from graph.facebook.com
+ * (the default, where a bare node id resolves); one made through Instagram Login
+ * is read from graph.instagram.com, whose tokens Facebook does not recognise and
+ * vice versa. The node shapes, fields and metric names are identical, so the
+ * only difference is which host the request goes to — hence a base URL rather
+ * than a second copy of this function. `graph()` passes an absolute path through
+ * untouched, which is what makes prefixing enough.
+ */
+export async function pullInstagram(igId: string, token: string, days = 60, base?: string): Promise<PullResult> {
+  const node = (id: string) => (base ? `${base}/${id}` : id)
   const rows = frame(days)
   const byDate = new Map(rows.map((r) => [r.date, r]))
   const metricsUsed: string[] = []
@@ -52,7 +65,7 @@ export async function pullInstagram(igId: string, token: string, days = 60): Pro
   // Current audience: a plain field on the node, unaffected by insights churn.
   let followers: number | null = null
   try {
-    const prof = await graph<{ followers_count?: number }>(igId, { fields: 'followers_count,username,name' }, token)
+    const prof = await graph<{ followers_count?: number }>(node(igId), { fields: 'followers_count,username,name' }, token)
     followers = typeof prof.followers_count === 'number' ? prof.followers_count : null
     if (followers != null) metricsUsed.push('followers_count')
   } catch (err) {
@@ -63,7 +76,7 @@ export async function pullInstagram(igId: string, token: string, days = 60): Pro
   // ask for both and take whichever this version still answers.
   const newFollows = new Map<string, number>()
   for (const w of windows(days, 30)) {
-    const got = await insights(igId, ['reach', 'views', 'impressions', 'follower_count', 'total_interactions'],
+    const got = await insights(node(igId), ['reach', 'views', 'impressions', 'follower_count', 'total_interactions'],
       { period: 'day', since: w.since, until: w.until }, token)
 
     const reach = seriesByDate(firstOf(got, 'reach'))
@@ -89,7 +102,7 @@ export async function pullInstagram(igId: string, token: string, days = 60): Pro
   const posts: PostRow[] = []
   const since = unix(new Date(Date.now() - days * DAY))
   try {
-    const media = await paged<any>(`${igId}/media`, {
+    const media = await paged<any>(node(`${igId}/media`), {
       fields: 'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink',
       since, limit: 50,
     }, token, { maxPages: 6, maxItems: 120 })
@@ -115,7 +128,7 @@ export async function pullInstagram(igId: string, token: string, days = 60): Pro
       try {
         // Per-media metric support varies by format (stories and reels differ
         // from feed posts), which is exactly what the per-metric fallback absorbs.
-        const got = await insights(m.id, mediaMetrics, {}, token, (names) => {
+        const got = await insights(node(m.id), mediaMetrics, {}, token, (names) => {
           // Stories and reels serve different metrics than feed posts, so only
           // narrow the set when a node actually answered with something.
           if (!learned && names.length) { mediaMetrics = names; learned = true }

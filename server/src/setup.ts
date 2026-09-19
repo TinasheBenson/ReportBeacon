@@ -19,6 +19,7 @@ import { pool, dbConfigured, dbHealthy } from './db.js'
 import { tokenKeyConfigured } from './crypto.js'
 import { emailConfigured } from './email.js'
 import { metaEnabled } from './meta.js'
+import { instagramLoginEnabled, instagramRedirectUri, IG_API_BASE } from './instagramLogin.js'
 import { GRAPH_VERSION } from './graph.js'
 
 type Level = 'pass' | 'warn' | 'fail'
@@ -71,7 +72,10 @@ export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check
     })
   } else {
     const applied = (await pool!.query('select name from schema_migrations order by name')).rows.map((r) => r.name as string)
-    const missing = ['001_init.sql', '002_password_and_app.sql', '003_live_sync.sql'].filter((m) => !applied.includes(m))
+    const missing = [
+      '001_init.sql', '002_password_and_app.sql', '003_live_sync.sql',
+      '004_remove_demo_data.sql', '005_instagram_login.sql',
+    ].filter((m) => !applied.includes(m))
     checks.push(missing.length ? {
       name: 'Database', level: 'fail',
       detail: `Connected, but these migrations have not run: ${missing.join(', ')}.`,
@@ -193,6 +197,36 @@ export async function buildChecks(rejectedOrigins: string[] = []): Promise<Check
       name: 'Meta App Domains', level: 'warn',
       detail: `Meta checks two separate things, and this one cannot be verified from here: "${apiHost}" must be listed in App Domains (App settings \u2192 Basic) as well as the callback being in Valid OAuth Redirect URIs.`,
       fix: `Subdomains are NOT covered by listing the parent domain \u2014 "${apiHost}" has to appear in its own right. Without it the dialog fails with "Can't load URL: The domain of this URL isn't included in the app's domains".`,
+    })
+  }
+
+  // ── Instagram Login ───────────────────────────────────────────────────────
+  // The route that does not need Business Verification. Worth reporting
+  // separately from the Meta app, because an app can be configured for one and
+  // not the other, and the credentials are different numbers.
+  if (!instagramLoginEnabled) {
+    checks.push({
+      name: 'Instagram Login', level: 'warn',
+      detail: 'INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET are not set, so Instagram can only be connected through Facebook — which needs advanced access, and that needs Business Verification.',
+      fix: 'In the Meta App Dashboard open Instagram \u2192 API setup with Instagram login, and copy the *Instagram* app id and secret from step 3 (they are NOT the same numbers as META_APP_ID / META_APP_SECRET). Set them as INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET on the api service.',
+    })
+  } else {
+    checks.push({
+      name: 'Instagram Login', level: 'pass',
+      detail: `Configured. Reads go to ${IG_API_BASE}, and the scopes used (instagram_business_basic, instagram_business_manage_insights) work at standard access.`,
+    })
+    const expected = `${API_URL ?? ''}/api/connect/instagram/callback`
+    checks.push(instagramRedirectUri === expected ? {
+      name: 'Instagram redirect URI', level: 'pass', detail: instagramRedirectUri,
+    } : {
+      name: 'Instagram redirect URI', level: 'fail',
+      detail: `INSTAGRAM_REDIRECT_URI is "${instagramRedirectUri}" but this API expects "${expected}".`,
+      fix: `Set INSTAGRAM_REDIRECT_URI to ${expected} on the api service.`,
+    })
+    checks.push({
+      name: 'Instagram OAuth settings', level: 'warn',
+      detail: `This cannot be verified from here: "${instagramRedirectUri}" must be listed under Instagram \u2192 API setup with Instagram login \u2192 "Set up Instagram business login" as an OAuth Redirect URI.`,
+      fix: 'That is a different list from Facebook Login\u2019s Valid OAuth Redirect URIs \u2014 adding the URL to one does not add it to the other. Also confirm the account being connected is a Professional (Business or Creator) Instagram account; a personal account can authorise but serves no insights.',
     })
   }
 
