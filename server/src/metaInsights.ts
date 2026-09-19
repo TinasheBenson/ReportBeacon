@@ -76,9 +76,21 @@ export async function pullInstagram(igId: string, token: string, days = 60, base
   // ask for both and take whichever this version still answers.
   const newFollows = new Map<string, number>()
   const windowTotals = new Map<string, number>()
+  // Meta's refusal names the metrics this node accepts, which is the only
+  // authoritative list available to this deployment. Keyed by *message* rather
+  // than by metric: every rejected name usually draws the same enumeration, and
+  // one copy of it with the names that drew it is the useful form. Repeated
+  // windows collapse into the same entry.
+  const refusals = new Map<string, string[]>()
   for (const w of windows(days, 30)) {
     const got = await insights(node(igId), ['reach', 'views', 'impressions', 'follower_count', 'total_interactions'],
-      { period: 'day', since: w.since, until: w.until }, token)
+      { period: 'day', since: w.since, until: w.until }, token,
+      undefined,
+      (metric, message) => {
+        const names = refusals.get(message) ?? []
+        if (!names.includes(metric)) names.push(metric)
+        refusals.set(message, names)
+      })
 
     const reach = seriesByDate(firstOf(got, 'reach'))
     const views = seriesByDate(firstOf(got, 'views', 'impressions'))
@@ -110,6 +122,13 @@ export async function pullInstagram(igId: string, token: string, days = 60, base
   }
   for (const want of ['reach', 'views', 'total_interactions']) {
     if (!metricsUsed.includes(want)) warnings.push(`ig: "${want}" unavailable on this Graph version`)
+  }
+  // The refusals themselves, verbatim. Meta answers an unknown metric by listing
+  // the ones it would have accepted, so this is the supported set straight from
+  // the API rather than from documentation — worth its length in the audit trail,
+  // because it is what turns "unavailable" into a name we can actually ask for.
+  for (const [message, names] of refusals) {
+    warnings.push(`ig: Meta refused ${names.map((n) => `"${n}"`).join(', ')} — ${message.slice(0, 400)}`)
   }
   // follower_count is a documented exception rather than a deprecation: Meta
   // withholds it below 100 followers. Saying so stops it being chased as a bug.

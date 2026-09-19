@@ -135,6 +135,16 @@ export async function insights(
    *  set once instead of re-running the slow path — and re-paying its request
    *  cost — for each one. */
   onResolved?: (names: string[]) => void,
+  /** Called with Meta's own words when a metric is refused in every form we
+   *  know how to ask.
+   *
+   *  This exists because a refusal is more informative than it looks. Meta's
+   *  code-100 reply to an unknown metric *enumerates the metrics that node will
+   *  accept* — the exact thing that is otherwise guesswork from documentation
+   *  this deployment cannot reach. Two rounds of guessing at why Instagram
+   *  rejected `views` and `total_interactions` were wrong; the answer was
+   *  sitting in the error body both times, and was being thrown away. */
+  onRejected?: (metric: string, message: string) => void,
 ): Promise<Map<string, InsightEntry>> {
   const got = new Map<string, InsightEntry>()
   if (!metrics.length) return got
@@ -152,21 +162,17 @@ export async function insights(
     if (!(err instanceof GraphError) || err.isAuth || !err.isBadMetric) throw err
   }
 
-  // Slow path: one metric at a time, skipping the ones this version no longer has.
+  // Slow path: one metric at a time, so one dead name cannot cost us the rest.
   //
-  // A metric rejected on its own gets one more chance with `metric_type=total_value`.
-  // Meta moved several Instagram metrics — `views`, `total_interactions`, `likes`,
-  // `shares`, `saves` — to that form, where they return a single figure for the
-  // window instead of a daily series, and asking for them the old way is rejected
-  // as an unsupported metric rather than as a changed one. The error looks
-  // identical to a retirement, so the only way to tell the two apart is to ask
-  // again the other way; the first live sync did exactly this and reported
-  // `views` and `total_interactions` as simply unavailable, which is what
-  // prompted this.
+  // Each metric gets two attempts. The second adds `metric_type=total_value`,
+  // the form Meta moved several metrics to, where they answer with one figure
+  // for the window instead of a daily series. That form is real, but it is not
+  // a cure-all: it did not rescue Instagram's `views` or `total_interactions`,
+  // so it is kept as cheap insurance — one extra request per genuinely dead
+  // metric, none for a healthy one — rather than as an explanation.
   //
-  // The retry costs one request per genuinely-dead metric and nothing at all for
-  // a healthy one, and `metricsUsed` records which form answered — so production
-  // tells us the truth rather than us guessing from documentation.
+  // The explanation comes from `onRejected`. When both attempts fail we hand
+  // the caller Meta's message, which names the metrics the node *will* accept.
   for (const m of metrics) {
     try {
       const res = await graph<{ data?: InsightEntry[] }>(`${nodeId}/insights`, { ...params, metric: m }, token)
@@ -191,7 +197,7 @@ export async function insights(
       const ge = err as GraphError
       if (ge.isAuth) throw err
       if (!ge.isBadMetric) throw err
-      // Gone in both forms — expected on a retirement, keep going.
+      onRejected?.(m, ge.message)
     }
   }
   onResolved?.([...got.keys()])
