@@ -31,6 +31,7 @@ export interface SocialAccountsResponse {
   connected: boolean
   metaConfigured: boolean
   linkedinConfigured: boolean
+  instagramConfigured: boolean
   source: SocialSource
 }
 export interface SyncResponse {
@@ -81,6 +82,13 @@ export function metaConnectUrl(): string {
 /** LinkedIn's connect flow is a redirect for the same reason Meta's is. */
 export function linkedinConnectUrl(): string {
   return `${BASE}/api/connect/linkedin/start`
+}
+
+/** Instagram on its own, authorised on instagram.com rather than facebook.com.
+ *  Separate from metaConnectUrl because it is a genuinely different product:
+ *  it reaches Instagram only, but works without Meta's Business Verification. */
+export function instagramConnectUrl(): string {
+  return `${BASE}/api/connect/instagram/start`
 }
 
 /** The setup check renders server-side as a page, so it is a link, not a fetch. */

@@ -15,13 +15,12 @@ import { PlatformLogo } from '@/components/social/PlatformLogo'
 import { SourceBadge } from '@/components/social/SourceBadge'
 import { Reveal } from '@/components/ui/disclosure'
 
-/** Facebook and Instagram arrive together through the Meta connect flow.
- *  LinkedIn has its own. TikTok is not built. */
-const VIA_META: SocialPlatformId[] = ['instagram', 'facebook']
-
 export default function SocialIntegrations() {
   const { isAdmin, canWrite } = useWorkspace()
-  const { accounts, source, connected, metaConfigured, linkedinConfigured, syncing, sync, connectMeta, connectLinkedIn, refresh } = useSocial()
+  const {
+    accounts, source, connected, metaConfigured, linkedinConfigured, instagramConfigured,
+    syncing, sync, connectMeta, connectLinkedIn, connectInstagram, refresh,
+  } = useSocial()
   const [params, setParams] = useSearchParams()
   const [lastErrors, setLastErrors] = useState<string[]>([])
 
@@ -30,7 +29,8 @@ export default function SocialIntegrations() {
     const connectedParam = params.get('connected')
     const problem = params.get('connect')
     if (connectedParam) {
-      const label = connectedParam === 'linkedin' ? 'LinkedIn' : 'Meta'
+      const label = connectedParam === 'linkedin' ? 'LinkedIn'
+        : connectedParam === 'instagram' ? 'Instagram' : 'Meta'
       const n = Number(params.get('accounts') ?? 0)
       const live = Number(params.get('live') ?? 0)
       toast.success(`${label} connected — ${n} account${n === 1 ? '' : 's'} imported${live > 0 ? `, ${live} pulling live data` : ''}`)
@@ -44,6 +44,8 @@ export default function SocialIntegrations() {
       toast.error('Authorisation was declined.')
     } else if (problem === 'linkedin-unconfigured') {
       toast.error('No LinkedIn app is configured on the server yet.')
+    } else if (problem === 'instagram-unconfigured') {
+      toast.error('No Instagram app is configured on the server yet.')
     } else if (problem === 'invalid') {
       toast.error('That connect link expired. Try connecting again.')
     }
@@ -58,7 +60,7 @@ export default function SocialIntegrations() {
       const res = await sync()
       if (!res) return
       setLastErrors(res.errors)
-      if (res.live > 0) toast.success(`Synced — ${res.live} channel${res.live === 1 ? '' : 's'} pulled live from Meta`)
+      if (res.live > 0) toast.success(`Synced — ${res.live} channel${res.live === 1 ? '' : 's'} pulled live`)
       else if (res.errors.length) toast.error('Sync finished, but no channel returned live data.')
       else toast.success('Synced.')
     } catch (err) {
@@ -67,6 +69,50 @@ export default function SocialIntegrations() {
   }
 
   const connectedPlatforms = new Set(accounts.flatMap((a) => a.platforms))
+
+  /**
+   * Which OAuth flow a platform's Connect button starts, or null if it isn't
+   * built.
+   *
+   * Instagram is the awkward one: it can be reached two ways and they are not
+   * interchangeable. Instagram Login authorises on instagram.com and works at
+   * standard access, so it is the default — but it brings Instagram alone.
+   * Facebook Login brings the Page and its linked Instagram account together,
+   * which is what an agency running both actually wants, but Meta gates it
+   * behind advanced access and therefore Business Verification. Neither is
+   * simply better, so the tile leads with the one that works today and keeps
+   * the other a click away.
+   */
+  function connectRoute(id: SocialPlatformId) {
+    if (id === 'instagram') {
+      return instagramConfigured
+        ? {
+            connect: connectInstagram,
+            warning: undefined,
+            alternative: metaConfigured ? {
+              label: 'or connect via Facebook',
+              title: 'Connects the Facebook Page and its linked Instagram account together. Needs the Meta app to hold advanced access, which requires Business Verification.',
+              connect: connectMeta,
+            } : undefined,
+          }
+        : {
+            connect: connectMeta,
+            warning: 'No Instagram app is configured, so this goes through Facebook — which needs advanced access on the Meta app.',
+            alternative: undefined,
+          }
+    }
+    if (id === 'facebook') {
+      return { connect: connectMeta, warning: undefined, alternative: undefined }
+    }
+    if (id === 'linkedin') {
+      return {
+        connect: connectLinkedIn,
+        warning: linkedinConfigured ? undefined : 'No LinkedIn app is configured on the server yet.',
+        alternative: undefined,
+      }
+    }
+    return null
+  }
 
   return (
     <Reveal className="flex flex-col gap-5 max-w-[980px]">
@@ -82,7 +128,7 @@ export default function SocialIntegrations() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {SOCIAL_PLATFORMS.map((pl) => {
-            const viaMeta = VIA_META.includes(pl.id)
+            const route = connectRoute(pl.id)
             const isOn = connectedPlatforms.has(pl.id)
             return (
               <div key={pl.id} className="bg-[var(--surface-2)] border border-[var(--line)] rounded-[9px] px-3 py-3 flex flex-col gap-2">
@@ -91,23 +137,35 @@ export default function SocialIntegrations() {
                   <span className="w-[9px] h-[9px] rounded-full" style={{ background: isOn ? 'var(--st-good)' : 'var(--line-2)' }} />
                 </div>
                 <span className="text-[12.5px] font-semibold">{pl.name}</span>
-                {viaMeta || pl.id === 'linkedin' ? (
-                  isAdmin && canWrite ? (
+                {!route ? (
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Not built</span>
+                ) : isAdmin && canWrite ? (
+                  <>
                     <Button
                       variant={isOn ? undefined : 'primary'}
                       className="py-1 px-2 text-[11px]"
-                      onClick={viaMeta ? connectMeta : connectLinkedIn}
-                      title={pl.id === 'linkedin' && !linkedinConfigured
-                        ? 'No LinkedIn app is configured on the server yet.'
-                        : undefined}
+                      onClick={route.connect}
+                      title={route.warning}
                     >
                       {isOn ? 'Reconnect' : 'Connect'}
                     </Button>
-                  ) : (
-                    <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: isOn ? 'var(--st-good)' : 'var(--muted)' }}>{isOn ? 'Connected' : 'Not connected'}</span>
-                  )
+                    {/* Instagram is the one platform with two doors, and which
+                        one a given account can use is not something we can tell
+                        from here — so offer the alternative rather than choose
+                        silently. */}
+                    {route.alternative && (
+                      <button
+                        type="button"
+                        onClick={route.alternative.connect}
+                        title={route.alternative.title}
+                        className="text-[10.5px] text-[var(--muted)] underline underline-offset-2 hover:text-[var(--ink-2)] transition-colors text-left"
+                      >
+                        {route.alternative.label}
+                      </button>
+                    )}
+                  </>
                 ) : (
-                  <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--muted)]">Not built</span>
+                  <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: isOn ? 'var(--st-good)' : 'var(--muted)' }}>{isOn ? 'Connected' : 'Not connected'}</span>
                 )}
               </div>
             )
@@ -132,7 +190,7 @@ export default function SocialIntegrations() {
             Setup check
           </a>
           <span className="text-[11.5px] text-[var(--muted)]">
-            Facebook and Instagram connect together through Meta. LinkedIn needs its Community Management API approved by LinkedIn before it returns any data, and only company pages you administer can be connected.
+            Instagram connects on its own through Instagram, or together with a Facebook Page through Meta. Either way the account has to be a Professional (Business or Creator) one. LinkedIn needs its Community Management API approved by LinkedIn before it returns any data, and only company pages you administer can be connected.
           </span>
         </div>
 
@@ -140,6 +198,13 @@ export default function SocialIntegrations() {
           <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2 flex items-start gap-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
             <AlertTriangle size={13} className="mt-0.5 flex-none" style={{ color: 'var(--st-warn)' }} />
             <span>No LinkedIn app is configured, so LinkedIn cannot connect yet. Set <code>LINKEDIN_CLIENT_ID</code> and <code>LINKEDIN_CLIENT_SECRET</code>, and note that LinkedIn must approve the app for the Community Management API before it returns any statistics.</span>
+          </div>
+        )}
+
+        {!instagramConfigured && (
+          <div className="mt-3 text-[11.5px] rounded-[8px] px-3 py-2 flex items-start gap-2" style={{ background: 'var(--surface-2)', color: 'var(--ink-2)' }}>
+            <AlertTriangle size={13} className="mt-0.5 flex-none" style={{ color: 'var(--st-warn)' }} />
+            <span>No Instagram app is configured, so Instagram can only be connected through Facebook — which needs advanced access on the Meta app, and that needs Business Verification. Set <code>INSTAGRAM_APP_ID</code> and <code>INSTAGRAM_APP_SECRET</code> (from <em>Instagram → API setup with Instagram login</em>, not the Facebook app’s credentials) to connect Instagram directly instead.</span>
           </div>
         )}
 

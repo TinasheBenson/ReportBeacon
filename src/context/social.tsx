@@ -18,7 +18,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useApp } from '@/context/app'
-import { apiClient, metaConnectUrl, linkedinConnectUrl } from '@/lib/apiClient'
+import { apiClient, metaConnectUrl, linkedinConnectUrl, instagramConnectUrl } from '@/lib/apiClient'
 import { SOCIAL_ACCOUNTS, type SocialAccount } from '@/lib/social'
 
 export type SocialSource = 'live' | 'empty' | 'demo'
@@ -34,6 +34,9 @@ interface SocialCtx {
   /** True when a LinkedIn app is configured. Its API needs LinkedIn's approval
    *  before it returns anything, so this being true is necessary, not sufficient. */
   linkedinConfigured: boolean
+  /** True when the server holds Instagram Login credentials, which is the route
+   *  that works without Meta's Business Verification. */
+  instagramConfigured: boolean
   loading: boolean
   syncing: boolean
   error: string | null
@@ -45,6 +48,9 @@ interface SocialCtx {
   connectMeta: () => void
   /** Send the browser into the LinkedIn OAuth flow. */
   connectLinkedIn: () => void
+  /** Send the browser into the Instagram Login OAuth flow — instagram.com, not
+   *  facebook.com, and it connects the one Instagram account only. */
+  connectInstagram: () => void
   accountById: (id: string) => SocialAccount | undefined
 }
 
@@ -56,6 +62,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [source, setSource] = useState<SocialSource>('demo')
   const [metaConfigured, setMetaConfigured] = useState(false)
   const [linkedinConfigured, setLinkedinConfigured] = useState(false)
+  const [instagramConfigured, setInstagramConfigured] = useState(false)
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +74,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       const res = await apiClient.socialAccounts()
       setMetaConfigured(res.metaConfigured)
       setLinkedinConfigured(res.linkedinConfigured)
+      setInstagramConfigured(res.instagramConfigured)
       // Signed in: show exactly what came back, even when that is nothing.
       setAccounts((res.accounts ?? []) as SocialAccount[])
       setSource(res.accounts?.length ? 'live' : 'empty')
@@ -110,6 +118,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       connected: !!accounts?.length,
       metaConfigured,
       linkedinConfigured,
+      instagramConfigured,
       loading,
       syncing,
       error,
@@ -117,9 +126,10 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       sync,
       connectMeta: () => { window.location.href = metaConnectUrl() },
       connectLinkedIn: () => { window.location.href = linkedinConnectUrl() },
+      connectInstagram: () => { window.location.href = instagramConnectUrl() },
       accountById: (id: string) => list.find((a) => a.id === id),
     }
-  }, [accounts, source, metaConfigured, linkedinConfigured, loading, syncing, error, load, sync])
+  }, [accounts, source, metaConfigured, linkedinConfigured, instagramConfigured, loading, syncing, error, load, sync])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
