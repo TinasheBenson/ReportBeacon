@@ -299,7 +299,7 @@ function page(checks: Check[], data: Awaited<ReturnType<typeof dataStatus>>): st
       const lvl: Level = data.live ? 'pass' : 'warn'
       dataBlock = `<div class="row"><span class="dot" style="background:${COLOR[lvl]}">${ICON[lvl]}</span><div>
         <div class="name">Connected accounts</div>
-        <div class="detail">${data.connections} channel(s) connected; ${data.live} pulling live data from Meta${data.needsReauth ? `; ${data.needsReauth} need reconnecting` : ''}.</div>
+        <div class="detail">${data.connections} channel(s) connected; ${data.live} pulling live data${data.needsReauth ? `; ${data.needsReauth} need reconnecting` : ''}.</div>
         ${data.live ? '' : '<div class="fix"><b>What to do:</b> The numbers on screen are stand-ins. The most recent sync attempts are listed below &mdash; the error there says why the live pull did not succeed.</div>'}
         <table><tr><th>Account</th><th>Platform</th><th>Source</th><th>Synced</th></tr>
         ${data.channels.map((c) => `<tr><td>${esc(c.account)}</td><td>${esc(c.platform)}</td><td>${esc(c.source)}</td><td>${c.syncedMinAgo == null ? 'never' : c.syncedMinAgo + ' min ago'}</td></tr>`).join('')}
