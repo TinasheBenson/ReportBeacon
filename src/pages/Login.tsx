@@ -1,7 +1,16 @@
-/** Real email + password sign-in and sign-up, backed by the API session. */
-import { useState } from 'react'
+/**
+ * Real email + password sign-in and sign-up, backed by the API session.
+ *
+ * Also the demo's front door. A cold prospect arriving from the landing page
+ * has been promised "no signup, no email", so `?demo=<seat>` starts that seat's
+ * session immediately and never shows them this form. Those credentials are
+ * already printed on this page, so the parameter exposes nothing new. If the
+ * auto-start fails - a cold backend, most likely - it falls back to the form
+ * with an explanation rather than stranding them on a spinner.
+ */
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router'
 import { ArrowRight, ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { Logo } from '@/components/Logo'
@@ -13,9 +22,18 @@ const DEMO_SEATS = [
   { email: 'viewer@reportbeacon.demo', label: 'Viewer', hint: 'Read-only, all accounts' },
 ]
 
+/** Landing CTAs pass ?demo=owner; the others are here so a link can open any seat. */
+const DEMO_SEAT_BY_KEY: Record<string, string> = {
+  owner: 'owner@reportbeacon.demo',
+  manager: 'manager@reportbeacon.demo',
+  viewer: 'viewer@reportbeacon.demo',
+}
+
 export default function Login() {
   const { login, register } = useApp()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -41,11 +59,43 @@ export default function Login() {
     setEmail(demoEmail); setPassword(DEMO_PASSWORD)
     try {
       await login(demoEmail, DEMO_PASSWORD)
-      navigate('/app')
+      // Keep the requested page: /app/social?demo=owner should land on social.
+      navigate(location.pathname.startsWith('/app') ? location.pathname : '/app')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the demo.')
       setBusy(false)
+      setAutoDemo(false)
     }
+  }
+
+  // Auto-start once per mount. The ref stops StrictMode's double effect, and a
+  // failure clears autoDemo so the form below renders with the error visible.
+  const demoKey = searchParams.get('demo')
+  const [autoDemo, setAutoDemo] = useState(() => Boolean(demoKey && DEMO_SEAT_BY_KEY[demoKey]))
+  const started = useRef(false)
+  useEffect(() => {
+    if (!autoDemo || started.current) return
+    const seat = demoKey ? DEMO_SEAT_BY_KEY[demoKey] : null
+    if (!seat) return
+    started.current = true
+    void demoLogin(seat)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoDemo, demoKey])
+
+  if (autoDemo) {
+    return (
+      <div className="min-h-screen grid place-items-center px-5" data-testid="demo-starting">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Logo size={44} />
+          <div className="flex items-center gap-2 text-[13px] text-[var(--ink-2)]">
+            <Loader2 size={15} className="animate-spin" /> Starting the demo&hellip;
+          </div>
+          <p className="text-[12.5px] text-[var(--muted)] max-w-[320px]">
+            Signing you in as the agency owner. Sample data throughout &mdash; nothing you do is saved.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -30,6 +30,14 @@ const BOOK_A_CALL = 'https://www.tinashebenson.com/contact'
 const EASE = [0.16, 1, 0.3, 1] as const
 const SOCIAL_BLUE = '#2563eb'
 
+/**
+ * Every CTA carries ?demo=owner so the prospect lands inside the console rather
+ * than on the sign-in form. The hero promises "no signup, no email" - a login
+ * wall between that promise and the product is where a cold visitor leaves.
+ */
+const DEMO_ENTRY = '/app?demo=owner'
+const SOCIAL_DEMO = '/app/social?demo=owner'
+
 const SOCIAL_PLATFORMS: { id: SocialPlatformId; name: string; note: string }[] = [
   { id: 'instagram', name: 'Instagram', note: 'Reach & engagement' },
   { id: 'facebook', name: 'Facebook', note: 'Pages & posts' },
@@ -110,7 +118,7 @@ export default function Landing() {
           <button onClick={toggleTheme} aria-label="Toggle theme" className="grid place-items-center w-9 h-9 rounded-[8px] text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors">
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
-          <Link to="/app" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold px-4 py-2 rounded-[9px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
+          <Link to={DEMO_ENTRY} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold px-4 py-2 rounded-[9px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
             Open the demo <ArrowRight size={15} />
           </Link>
         </div>
@@ -129,7 +137,7 @@ export default function Landing() {
             One console for the ad, social and search platforms your agency already runs, carrying your brand instead of a vendor's. The client report builds off the same numbers, so the first week of the month stops disappearing into exports and slide decks.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
-            <Link to="/app" className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity shadow-[var(--shadow-pop)]">
+            <Link to={DEMO_ENTRY} className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity shadow-[var(--shadow-pop)]">
               <Play size={17} /> Open the live demo
             </Link>
             <p className="text-[13px] text-[var(--muted)]">No signup, no email. Sample data throughout &mdash; nothing you click is saved.</p>
@@ -333,7 +341,7 @@ export default function Landing() {
                   Instagram, Facebook, TikTok and LinkedIn, side by side with the ad accounts. Reach and engagement across the roster, post performance, best time to post, and a client-ready report that carries your brand. Flip to the social face and the whole console shifts to a blue identity of its own.
                 </p>
                 <div className="mt-6">
-                  <Link to="/app/social" className="inline-flex items-center gap-2 text-[15px] font-semibold px-5 py-3 rounded-[10px] text-white hover:opacity-90 transition-opacity" style={{ background: SOCIAL_BLUE }}>
+                  <Link to={SOCIAL_DEMO} className="inline-flex items-center gap-2 text-[15px] font-semibold px-5 py-3 rounded-[10px] text-white hover:opacity-90 transition-opacity" style={{ background: SOCIAL_BLUE }}>
                     <Play size={16} /> Open the social demo
                   </Link>
                 </div>
@@ -363,7 +371,7 @@ export default function Landing() {
               Switch between the owner and manager seats and watch what each one is allowed to see. Drill into an account. Build a report. It runs on sample numbers, so click anything &mdash; nothing is saved beyond your own browser.
             </p>
             <div className="mt-7">
-              <Link to="/app" className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
+              <Link to={DEMO_ENTRY} className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
                 Open the live demo <ArrowRight size={16} />
               </Link>
             </div>
@@ -435,7 +443,7 @@ export default function Landing() {
               Book a call <ArrowRight size={16} />
             </a>
             <p className="mt-3 text-[13px] text-[var(--muted)]">
-              Or <Link to="/app" className="underline underline-offset-2 hover:text-[var(--ink-2)]">keep clicking around the demo</Link> first.
+              Or <Link to={DEMO_ENTRY} className="underline underline-offset-2 hover:text-[var(--ink-2)]">keep clicking around the demo</Link> first.
             </p>
           </div>
         </section>
