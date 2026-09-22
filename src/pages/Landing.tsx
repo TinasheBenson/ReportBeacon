@@ -35,59 +35,98 @@ const DEMO_ENTRY = '/app'
 const SOCIAL_DEMO = '/app/social'
 
 /**
- * Pricing. Edit these three objects and the section below follows.
+ * Pricing. Edit these objects and the section below follows.
  *
- * The design-partner rate is deliberately framed as limited and by application
- * rather than as a published price. A public low number becomes the anchor for
- * every later quote, and a firm that looks similar from outside will ask why
- * they are being charged more.
+ * Sized to who actually arrives here. The outbound lists are agencies at 5-50
+ * staff, most of them 11-25 at $1M-5M revenue, so the entry tier has to be
+ * reachable for a $2M shop or a cold visitor bounces on the number alone. The
+ * top tier is a ceiling that makes the middle look reasonable, not a target.
+ *
+ * The design-partner rate is not published. A public low number becomes the
+ * anchor for every later quote; it is offered by application instead, which is
+ * what the smaller-agency outreach points at.
  */
 const PRICING: {
-  name: string; price: string; unit: string; blurb: string;
-  points: string[]; cta: string; featured?: boolean; note?: string
+  name: string; price: string; unit: string; fit: string; blurb: string;
+  points: string[]; cta: string; featured?: boolean; anchor?: string
 }[] = [
   {
-    name: 'Design partner',
-    price: '$1,500',
-    unit: 'setup, then $199/mo',
-    blurb: 'For smaller agencies, in exchange for real feedback and a case study once it is running.',
+    name: 'Foundation',
+    price: '$4,000 – $7,000',
+    unit: 'one-off',
+    fit: 'Agencies at roughly 5–25 staff',
+    blurb: 'The core system: every client in one place, your branding on it, reports that build themselves off the same numbers.',
     points: [
-      'Up to ~15 client dashboards',
-      'Your branding throughout',
-      'You steer what gets built next',
-      'Scheduled client reports',
+      'Your platforms connected and syncing',
+      'One view across the whole roster',
+      'Role-based access for your team',
+      'Scheduled client reports, sent automatically',
+      'Yours to keep',
     ],
-    cta: 'Apply for a place',
-    note: 'Limited places, by application',
+    cta: 'Book a call',
   },
   {
-    name: 'Build',
-    price: 'From $4,000',
+    name: 'Intelligence',
+    price: '$8,000 – $15,000',
     unit: 'one-off',
-    blurb: 'The usual shape: your platforms connected, your reporting rebuilt around how your agency actually works.',
+    fit: 'Agencies at roughly 15–50 staff',
+    blurb: 'Everything in Foundation, plus the layers that turn reporting into something your team decides from.',
     points: [
-      'Wired to your live platforms',
-      'Your metrics, not a template',
-      'Role-based access across your team',
-      'Reports that send themselves',
-      'Yours to keep',
+      'Everything in Foundation',
+      'Manual reporting removed end to end',
+      'AI insight layer: what needs attention, and why',
+      'Deeper integrations, including CRM and internal data',
+      'Client-facing shareable views',
     ],
     cta: 'Book a call',
     featured: true,
   },
   {
-    name: 'Multi-brand',
-    price: 'From $12,000',
-    unit: 'one-off',
-    blurb: 'Larger rosters, bespoke metrics, or several brands that each need their own front door.',
+    // The number is withheld here on purpose, but not entirely: a bare
+    // "Contact us" wall tests worse than one carrying a starting anchor,
+    // and this tier's real job is to make the middle one look reasonable.
+    // Delete `anchor` to go fully blank.
+    name: 'Full system',
+    price: 'Custom',
+    unit: '',
+    anchor: 'Typically from $18,000',
+    fit: 'Larger rosters and multi-brand groups',
+    blurb: 'For agencies with several brands or offices, bespoke data sources, and a real appetite for querying their own numbers.',
     points: [
-      'Everything in Build',
-      'Multiple brands or offices',
-      'Custom metrics and data sources',
+      'Everything in Intelligence',
+      'Multiple brands, offices or regions',
+      'Custom metrics and bespoke data sources',
+      'AI interface: ask your data questions directly',
       'White-label domain and client logins',
     ],
-    cta: 'Book a call',
+    cta: 'Talk it through',
   },
+]
+
+const ONGOING = [
+  { name: 'Support', price: '$400 – $1,200 / mo', note: 'Kept running, platforms re-authorised, breakages fixed.' },
+  { name: 'Optimisation', price: '$1,200 – $2,500 / mo', note: 'Ongoing changes as your roster, metrics and team shift.' },
+]
+
+/** Qualifying. Saying who this is not for protects the price before anyone asks. */
+const FIT_YES = [
+  'Agencies managing multiple client accounts',
+  'Founders who want real visibility across the roster',
+  'Teams tired of assembling reports by hand',
+  'Anyone who needs margin visible to some people and not others',
+]
+const FIT_NO = [
+  'Anyone shopping for the cheapest dashboard',
+  'DIY setups looking for a template',
+  'Single-client or in-house teams without a roster',
+  'Anyone who needs it live next week',
+]
+
+/** The words owners actually use. Verbatim beats paraphrase here. */
+const SOUNDS_FAMILIAR = [
+  '\u201cWe\u2019re pulling reports manually every week.\u201d',
+  '\u201cData is everywhere, nothing is clear.\u201d',
+  '\u201cWe don\u2019t fully trust our numbers.\u201d',
 ]
 
 const SOCIAL_PLATFORMS: { id: SocialPlatformId; name: string; note: string }[] = [
@@ -188,10 +227,10 @@ export default function Landing() {
             <span className="w-[7px] h-[7px] rounded-full bg-[var(--st-good)]" /> For agencies running 10-50 client accounts
           </span>
           <h1 className="mt-6 text-[38px] md:text-[56px] font-bold tracking-[-0.03em] leading-[1.05] max-w-[860px] mx-auto" style={{ textWrap: 'balance' } as any}>
-            Stop rebuilding the same client report every month
+            Your reporting is fragmented.<br className="hidden sm:block" /> That&rsquo;s where the money leaks.
           </h1>
           <p className="mt-5 text-[16px] md:text-[18px] text-[var(--ink-2)] max-w-[660px] mx-auto leading-relaxed">
-            One console for the ad, social and search platforms your agency already runs, carrying your brand instead of a vendor's. The client report builds off the same numbers, so the first week of the month stops disappearing into exports and slide decks.
+            Most agencies do not lack data. They lack one place to see it. We build the internal reporting system that pulls your platforms, your CRM and your spreadsheets into a single view your team actually works from &mdash; carrying your brand, not a vendor&rsquo;s.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link to={DEMO_ENTRY} className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity shadow-[var(--shadow-pop)]">
@@ -220,7 +259,7 @@ export default function Landing() {
               Reporting is the work nobody scoped and everybody pays for
             </h2>
             <p className="mt-4 text-[15.5px] md:text-[16px] text-[var(--ink-2)] leading-relaxed">
-              Most agencies land on Looker Studio because it is free, then find out what it costs. It is native to Google and nothing else, so every non-Google platform needs a paid connector. It puts a vendor footer on work you are charging a client for. Nothing sends itself. And every new client means building and then maintaining another report by hand.
+              The numbers sit in Meta, in Google, in your CRM, in a spreadsheet someone maintains by hand. Nothing shows what is actually happening across the roster, so decisions wait on someone assembling an answer. Most agencies land on Looker Studio because it is free, then find out what it costs: native to Google and nothing else, a paid connector for every other platform, a vendor footer on work you are charging for, and a rebuild for every new client.
             </p>
           </div>
           <div className="mt-10 grid sm:grid-cols-3 gap-4 max-w-[860px] mx-auto">
@@ -234,6 +273,18 @@ export default function Landing() {
                 <p className="text-[13.5px] text-[var(--ink-2)] leading-relaxed">{c.t}</p>
               </div>
             ))}
+          </div>
+        </section>
+      </Rise>
+
+      {/* The reframe. "Another dashboard" is the objection this has to beat. */}
+      <Rise>
+        <section className="mx-auto max-w-[1120px] px-5 pb-6">
+          <div className="max-w-[760px] mx-auto rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-8 md:p-10 text-center shadow-[var(--shadow)]">
+            <h2 className="text-[24px] md:text-[30px] font-bold tracking-[-0.02em]">Not another dashboard</h2>
+            <p className="mt-3 text-[15.5px] text-[var(--ink-2)] leading-relaxed max-w-[560px] mx-auto">
+              A dashboard is something else to go and look at. This is the system underneath it: your sources wired together, syncing on their own, shaped around how your agency is actually structured &mdash; so the reporting stops being a task and becomes something your team just has.
+            </p>
           </div>
         </section>
       </Rise>
@@ -449,9 +500,10 @@ export default function Landing() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
                   <span className="text-[30px] font-bold tracking-[-0.03em] leading-none">{t.price}</span>
-                  <span className="text-[13px] text-[var(--muted)]">{t.unit}</span>
+                  {t.unit && <span className="text-[13px] text-[var(--muted)]">{t.unit}</span>}
                 </div>
-                {t.note && <div className="mt-1.5 text-[12px] font-semibold text-[var(--accent)]">{t.note}</div>}
+                {t.anchor && <div className="mt-1 text-[13px] text-[var(--muted)]">{t.anchor}</div>}
+                <div className="mt-1.5 text-[12px] font-semibold text-[var(--accent)]">{t.fit}</div>
                 <p className="mt-3 text-[13.5px] text-[var(--ink-2)] leading-relaxed">{t.blurb}</p>
                 <ul className="mt-5 grid gap-2 flex-1">
                   {t.points.map((pt) => (
@@ -473,9 +525,66 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          <div className="mt-8 max-w-[760px] mx-auto rounded-[14px] border border-[var(--line)] bg-[var(--surface-2)] p-5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)] mb-3">Ongoing, if you want it</div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {ONGOING.map((o) => (
+                <div key={o.name}>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-[14px] font-bold">{o.name}</span>
+                    <span className="text-[13.5px] text-[var(--accent)] font-semibold">{o.price}</span>
+                  </div>
+                  <p className="mt-1 text-[13px] text-[var(--ink-2)] leading-relaxed">{o.note}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[12.5px] text-[var(--muted)]">Optional. The build stands on its own without either.</p>
+          </div>
           <p className="mt-6 text-center text-[13px] text-[var(--muted)] max-w-[620px] mx-auto">
-            Every build is scoped on a call first. You get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise.
+            Every build is scoped on a call first. You get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise. Smaller agencies: a limited number of design-partner places exist at a reduced rate &mdash; ask on the call.
           </p>
+        </section>
+      </Rise>
+
+      {/* Qualifying. Reads as confidence, and it protects the price. */}
+      <Rise>
+        <section className="mx-auto max-w-[1120px] px-5 py-12 md:py-16">
+          <div className="grid md:grid-cols-2 gap-5 max-w-[860px] mx-auto">
+            <div className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
+              <h3 className="text-[16px] font-bold tracking-[-0.01em] mb-4">Who this is for</h3>
+              <ul className="grid gap-2.5">
+                {FIT_YES.map((t) => (
+                  <li key={t} className="flex items-start gap-2.5 text-[14px] text-[var(--ink-2)]">
+                    <Check size={16} className="mt-[3px] shrink-0" style={{ color: 'var(--good)' }} /> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
+              <h3 className="text-[16px] font-bold tracking-[-0.01em] mb-4">Who it is not for</h3>
+              <ul className="grid gap-2.5">
+                {FIT_NO.map((t) => (
+                  <li key={t} className="flex items-start gap-2.5 text-[14px] text-[var(--ink-2)]">
+                    <X size={16} className="mt-[3px] shrink-0" style={{ color: 'var(--bad)' }} /> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 max-w-[760px] mx-auto text-center">
+            <h3 className="text-[20px] md:text-[24px] font-bold tracking-[-0.02em]">If any of this sounds familiar</h3>
+            <div className="mt-5 grid sm:grid-cols-3 gap-3">
+              {SOUNDS_FAMILIAR.map((q) => (
+                <blockquote key={q} className="rounded-[14px] border border-[var(--line)] bg-[var(--surface-2)] p-4 text-[14px] text-[var(--ink)] leading-snug italic">
+                  {q}
+                </blockquote>
+              ))}
+            </div>
+            <p className="mt-5 text-[15px] text-[var(--ink-2)]">
+              Then the answer is not another tool. It is a system.
+            </p>
+          </div>
         </section>
       </Rise>
 
