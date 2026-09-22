@@ -65,20 +65,24 @@ whatever else an agency reports on. The platform list is scoped per build.
 
 ## Pricing
 
-A custom-built internal system, not a SaaS subscription. Tier boundaries are
-set by agency headcount.
+Three packages, priced by what gets built rather than by agency headcount.
+Each is cumulative and each is a one-off the agency owns.
 
-- **Starter — from $3,500, one-off.** Agencies at 5–12 staff. Platforms
-  connected and syncing, one view across the whole roster, scheduled client
-  reports, your branding throughout. Yours to keep.
-- **Core — from $9,000, one-off.** Agencies at 13–30 staff. Everything in
-  Starter, plus manual reporting removed end to end, an AI insight layer,
-  deeper integrations including CRM and internal data, role-based access with
-  margin visible to the owner and not the team, and client-facing shareable
-  views.
-- **Scale — custom, typically from $18,000.** 30+ staff or multi-brand:
-  multiple brands, offices or regions, bespoke data sources, an AI interface
-  for querying the data directly, white-label domain and client logins.
+- **Starter — from $3,500, one-off.** Up to 3 data sources connected (for
+  example Google Ads, Meta and GA4), up to 10 client accounts, one view across
+  the roster, your logo and report template, scheduled client reports sent
+  automatically, role-based access for your team.
+- **Core — from $9,000, one-off.** Everything in Starter, plus up to 8 data
+  sources — adding Google Business Profile, Local Services Ads, LinkedIn,
+  TikTok and SEMrush — your CRM and call tracking wired in, unlimited client
+  accounts, an AI insight layer that says what needs attention this week and
+  why, budget recommendations with the arithmetic shown, and client-facing
+  shareable views.
+- **Full system — custom, typically from $18,000.** Everything in Core, plus
+  any data source including internal databases and spreadsheets, a white-label
+  domain so reports live on the agency's own URL, client logins to a branded
+  portal, multiple brands or offices, and an AI interface for asking the data
+  questions directly.
 
 After it ships: support from $400/month, with the first three months included
 and continuing unless cancelled — platforms change their APIs and expire their

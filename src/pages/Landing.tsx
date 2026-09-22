@@ -54,17 +54,17 @@ const SOCIAL_DEMO = '/app/social'
 /**
  * Pricing. Edit these objects and the section below follows.
  *
- * The boundaries are set from the outbound list rather than guessed. Its median
- * is 17 staff and none of it is below 11, so Core spans 13-30 and catches about
- * nine in ten of them; an earlier ladder let that same median read itself into
- * the cheapest tier, which is the wrong way round when the middle tier is the
- * one most people pick. Starter exists for the 5-10 staff LinkedIn segment,
- * which otherwise arrives at a floor it cannot see itself in. Scale is a
- * ceiling that makes Core look reasonable more than it is a target.
+ * Tiers are scoped by what gets built, not by the buyer's headcount. An earlier
+ * version banded them 5-12 / 13-30 / 30+ staff, which priced the agency rather
+ * than the work: a fourteen-person shop needing two platforms connected has no
+ * business being quoted the middle tier because of its payroll. What actually
+ * drives the cost is how many sources are wired up, whether the insight layer
+ * is built, and whether clients get their own branded way in.
  *
- * The design-partner rate is not published. A public low number becomes the
- * anchor for every later quote; it is offered by application instead, which is
- * what the smaller-agency outreach points at.
+ * Each tier is cumulative, and each boundary is a deliverable the buyer can
+ * point at. The design-partner rate stays unpublished - a public low number
+ * becomes the anchor for every later quote - and is offered by application,
+ * which is what the smaller-agency outreach points at.
  */
 const PRICING: {
   name: string; price: string; unit: string; fit: string; blurb: string;
@@ -74,33 +74,31 @@ const PRICING: {
     name: 'Starter',
     price: 'From $3,500',
     unit: 'one-off',
-    fit: '5\u201312 staff',
-    blurb: 'The core system for a smaller shop: every client in one place, your branding on it, reports that build themselves.',
+    fit: 'Up to 3 platforms, one roster',
+    blurb: 'Your reporting, connected and automated. The platforms you run in one branded view, with the client report going out on its own.',
     points: [
-      'Your platforms connected and syncing',
+      'Up to 3 data sources connected \u2014 say Google Ads, Meta and GA4',
+      'Up to 10 client accounts',
       'One view across the whole roster',
+      'Your logo, colours and report template',
       'Scheduled client reports, sent automatically',
-      'Your branding throughout',
-      'Yours to keep',
+      'Role-based access for your team',
     ],
     cta: 'Book a call',
   },
   {
-    // Deliberately where the modal prospect lands. The outbound list has a
-    // median of 17 staff, so the boundaries are set to put roughly nine in ten
-    // of them here rather than in the tier below - a middle tier is picked far
-    // more often than either side, and it should not be the cheap one.
     name: 'Core',
     price: 'From $9,000',
     unit: 'one-off',
-    fit: '13\u201330 staff',
-    blurb: 'Everything in Starter, plus the layers that turn reporting into something your team decides from rather than reads.',
+    fit: 'The full stack, plus the insight layer',
+    blurb: 'Everything connected, and the system starts telling you things. This is where reporting stops being a record and starts being a decision.',
     points: [
       'Everything in Starter',
-      'Manual reporting removed end to end',
-      'AI insight layer: what needs attention, and why',
-      'Deeper integrations, including CRM and internal data',
-      'Role-based access: margin visible to you, not to the team',
+      'Up to 8 data sources \u2014 add Google Business Profile, Local Services, LinkedIn, TikTok, SEMrush',
+      'Your CRM and call tracking wired in',
+      'Unlimited client accounts',
+      'AI insight layer: what needs attention this week, and why',
+      'Budget recommendations with the arithmetic shown',
       'Client-facing shareable views',
     ],
     cta: 'Book a call',
@@ -111,18 +109,19 @@ const PRICING: {
     // "Contact us" wall tests worse than one carrying a starting anchor,
     // and this tier's real job is to make the middle one look reasonable.
     // Delete `anchor` to go fully blank.
-    name: 'Scale',
+    name: 'Full system',
     price: 'Custom',
     unit: '',
     anchor: 'Typically from $18,000',
-    fit: '30+ staff, or multi-brand',
-    blurb: 'For agencies with several brands or offices, bespoke data sources, and a real appetite for querying their own numbers.',
+    fit: 'Your own domain, and a login for every client',
+    blurb: 'The version your clients see too. Your brand end to end, a portal each client signs into, and data you can ask questions of.',
     points: [
       'Everything in Core',
+      'Any data source, including internal databases and spreadsheets',
+      'White-label domain \u2014 reports live on your URL, not mine',
+      'Client logins: a branded portal each client signs into',
       'Multiple brands, offices or regions',
-      'Custom metrics and bespoke data sources',
-      'AI interface: ask your data questions directly',
-      'White-label domain and client logins',
+      'AI interface: ask your data a question and get an answer',
     ],
     cta: 'Talk it through',
   },
@@ -145,7 +144,7 @@ const ONGOING = [
     name: 'Optimisation',
     price: 'From $1,200 / mo',
     tag: 'Optional',
-    note: 'Ongoing changes as your roster, metrics and team shift. Plenty of agencies never need this.',
+    note: 'New sources, new metrics, new clients as the roster shifts. Plenty of agencies never need this.',
   },
 ]
 
@@ -215,7 +214,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does it cost?',
-    a: 'Starter opens at $3,500, Core at $9,000, and Scale is custom, typically from $18,000. Where you land depends on how many platforms and how much of your reporting is bespoke, so you get a firm figure on the first call rather than a follow-up email a week later.',
+    a: 'Starter opens at $3,500, Core at $9,000, and the Full system is custom, typically from $18,000. Which one you need comes down to how many data sources get connected, whether the AI insight layer is built, and whether your clients get their own branded logins - not how big your agency is. You get a firm figure on the first call rather than a follow-up email a week later.',
   },
   {
     q: 'Is it a subscription?',
@@ -533,7 +532,7 @@ export default function Landing() {
           <div className="text-center max-w-[620px] mx-auto mb-11">
             <h2 className="text-[28px] md:text-[34px] font-bold tracking-[-0.02em]">What it costs</h2>
             <p className="mt-3 text-[15px] text-[var(--ink-2)]">
-              A build you own, not a seat licence you rent. The system itself is a one-off; only keeping it running is monthly.
+Three packages, priced by what gets built rather than how big you are. Each one is a one-off you own; only keeping it running is monthly.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 items-start">
