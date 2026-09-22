@@ -68,21 +68,27 @@ const SOCIAL_DEMO = '/app/social'
  */
 const PRICING: {
   name: string; price: string; unit: string; fit: string; blurb: string;
-  points: string[]; cta: string; featured?: boolean; anchor?: string
+  points: string[]; cta: string; featured?: boolean; anchor?: string; limits?: string[]
 }[] = [
   {
+    // Starter is deliberately internal-only. Nobody should be choosing which
+    // clients to include, so the roster is never capped; what is capped is how
+    // many sources get wired and whether any of it is fit to leave the building.
     name: 'Starter',
     price: 'From $3,500',
     unit: 'one-off',
-    fit: 'Up to 3 platforms, one roster',
-    blurb: 'Your reporting, connected and automated. The platforms you run in one branded view, with the client report going out on its own.',
+    fit: 'Your numbers in one place, for your eyes',
+    blurb: 'Every client you run, in a single view you can finally read. Internal visibility - not something you hand to a client yet.',
     points: [
-      'Up to 3 data sources connected \u2014 say Google Ads, Meta and GA4',
-      'Up to 10 client accounts',
-      'One view across the whole roster',
-      'Your logo, colours and report template',
-      'Scheduled client reports, sent automatically',
-      'Role-based access for your team',
+      'Every client account you manage \u2014 never a capped roster',
+      'Up to 4 data sources \u2014 GA4, Google Ads, Meta and Google Business Profile',
+      'One summary across the whole roster',
+      'Export what you see, whenever you want',
+      'Team access with roles',
+    ],
+    limits: [
+      'No branding \u2014 it carries no logo, yours or mine',
+      'Nothing scheduled, and nothing client-ready to send',
     ],
     cta: 'Book a call',
   },
@@ -90,13 +96,14 @@ const PRICING: {
     name: 'Core',
     price: 'From $9,000',
     unit: 'one-off',
-    fit: 'The full stack, plus the insight layer',
-    blurb: 'Everything connected, and the system starts telling you things. This is where reporting stops being a record and starts being a decision.',
+    fit: 'Branded, automated and client-ready',
+    blurb: 'The same system, but now it carries your name, goes out on its own, and tells you what needs attention before the client asks.',
     points: [
       'Everything in Starter',
-      'Up to 8 data sources \u2014 add Google Business Profile, Local Services, LinkedIn, TikTok, SEMrush',
+      'Up to 8 data sources \u2014 add Local Services, LinkedIn, TikTok, SEMrush',
       'Your CRM and call tracking wired in',
-      'Unlimited client accounts',
+      'Your logo, colours and report template throughout',
+      'Scheduled client reports, sent automatically',
       'AI insight layer: what needs attention this week, and why',
       'Budget recommendations with the arithmetic shown',
       'Client-facing shareable views',
@@ -113,15 +120,15 @@ const PRICING: {
     price: 'Custom',
     unit: '',
     anchor: 'Typically from $18,000',
-    fit: 'Your own domain, and a login for every client',
-    blurb: 'The version your clients see too. Your brand end to end, a portal each client signs into, and data you can ask questions of.',
+    fit: 'Your domain, client logins, and an AI that can act on it',
+    blurb: 'The version your clients log into, on your own URL \u2014 and a dashboard your AI assistant can read and work from.',
     points: [
       'Everything in Core',
       'Any data source, including internal databases and spreadsheets',
       'White-label domain \u2014 reports live on your URL, not mine',
       'Client logins: a branded portal each client signs into',
       'Multiple brands, offices or regions',
-      'AI interface: ask your data a question and get an answer',
+      'MCP server: connect the dashboard to Claude, ChatGPT or whatever your team uses, so it can read your numbers and work on them',
     ],
     cta: 'Talk it through',
   },
@@ -560,13 +567,25 @@ Three packages, priced by what gets built rather than how big you are. Each one 
                 {t.anchor && <div className="mt-1 text-[13px] text-[var(--muted)]">{t.anchor}</div>}
                 <div className="mt-1.5 text-[12px] font-semibold text-[var(--accent)]">{t.fit}</div>
                 <p className="mt-3 text-[13.5px] text-[var(--ink-2)] leading-relaxed">{t.blurb}</p>
-                <ul className="mt-5 grid gap-2 flex-1">
+                <ul className="mt-5 grid gap-2">
                   {t.points.map((pt) => (
                     <li key={pt} className="flex items-start gap-2 text-[13.5px] text-[var(--ink-2)]">
                       <Check size={15} className="mt-[3px] shrink-0" style={{ color: 'var(--good)' }} /> {pt}
                     </li>
                   ))}
                 </ul>
+                {/* Naming the ceiling is what makes the next tier obviously
+                    worth it, and stops a buyer discovering it after paying. */}
+                {t.limits && (
+                  <ul className="mt-3 pt-3 border-t border-[var(--line)] grid gap-2">
+                    {t.limits.map((lt) => (
+                      <li key={lt} className="flex items-start gap-2 text-[13px] text-[var(--muted)]">
+                        <X size={14} className="mt-[3px] shrink-0" /> {lt}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex-1" />
                 <a
                   href={BOOK_A_CALL}
                   className={`mt-6 inline-flex items-center justify-center gap-2 text-[14.5px] font-semibold px-5 py-2.5 rounded-[10px] transition-opacity ${

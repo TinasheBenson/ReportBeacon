@@ -66,23 +66,27 @@ whatever else an agency reports on. The platform list is scoped per build.
 ## Pricing
 
 Three packages, priced by what gets built rather than by agency headcount.
-Each is cumulative and each is a one-off the agency owns.
+Each is cumulative and each is a one-off the agency owns. No tier caps the
+client roster — an agency never chooses which of its clients to include.
 
-- **Starter — from $3,500, one-off.** Up to 3 data sources connected (for
-  example Google Ads, Meta and GA4), up to 10 client accounts, one view across
-  the roster, your logo and report template, scheduled client reports sent
-  automatically, role-based access for your team.
+- **Starter — from $3,500, one-off.** Internal visibility. Every client account
+  the agency manages, with up to 4 data sources connected — GA4, Google Ads,
+  Meta and Google Business Profile. One summary across the whole roster,
+  exportable at any time, and team access with roles. It carries no branding,
+  nothing is scheduled, and nothing in it is client-ready, so it is for the
+  agency's own eyes rather than something to hand a client.
 - **Core — from $9,000, one-off.** Everything in Starter, plus up to 8 data
-  sources — adding Google Business Profile, Local Services Ads, LinkedIn,
-  TikTok and SEMrush — your CRM and call tracking wired in, unlimited client
-  accounts, an AI insight layer that says what needs attention this week and
-  why, budget recommendations with the arithmetic shown, and client-facing
-  shareable views.
+  sources — adding Local Services Ads, LinkedIn, TikTok and SEMrush — the CRM
+  and call tracking wired in, the agency's logo and report template throughout,
+  scheduled client reports sent automatically, an AI insight layer that says
+  what needs attention this week and why, budget recommendations with the
+  arithmetic shown, and client-facing shareable views.
 - **Full system — custom, typically from $18,000.** Everything in Core, plus
   any data source including internal databases and spreadsheets, a white-label
   domain so reports live on the agency's own URL, client logins to a branded
-  portal, multiple brands or offices, and an AI interface for asking the data
-  questions directly.
+  portal, multiple brands or offices, and an MCP server: the dashboard connects
+  to Claude, ChatGPT or whichever assistant the team uses, so it can read the
+  agency's numbers and carry out work against them.
 
 After it ships: support from $400/month, with the first three months included
 and continuing unless cancelled — platforms change their APIs and expire their
