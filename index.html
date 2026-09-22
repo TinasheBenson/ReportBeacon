@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f8fa" />
-    <meta name="robots" content="noindex, nofollow" />
+    <!-- Open to crawlers and AI readers. This page is the public pitch; the
+         point is for it to be found and read. max-snippet:-1 lets an engine
+         or assistant quote as much of it as it wants. -->
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <link rel="canonical" href="https://demo.tinashebenson.com/" />
     <title>ReportBeacon</title>
     <meta name="description" content="An interactive demo for marketing agencies: bring the ad, SEO and analytics platforms you report on into one console, with budget recommendations and print-ready client reports." />
 
@@ -22,12 +26,95 @@
     <meta name="twitter:description" content="Every client account you run on one screen. Try the live demo." />
     <meta name="twitter:image" content="https://demo.tinashebenson.com/preview-light.png" />
 
+    <!-- Structured data. A fetcher that runs no JavaScript still gets the
+         offer, the pricing and the FAQ from here. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "ReportBeacon",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "url": "https://demo.tinashebenson.com/",
+          "description": "Client reporting dashboards built for marketing agencies. One console for the ad, social and search platforms an agency reports on, carrying the agency's own branding, with the client report built from the same data and sent on a schedule.",
+          "author": { "@type": "Person", "name": "Tinashe Benson", "url": "https://www.tinashebenson.com" },
+          "featureList": [
+            "Whole client roster on one screen with health, leads, cost per lead and spend pacing",
+            "Alerts before the client notices",
+            "Budget recommendations with the maths shown",
+            "Client-ready reports in one click",
+            "Scheduled weekly or monthly report delivery",
+            "Role-based access: owner sees margin, account managers do not, clients get read-only",
+            "White label across console, reports, scheduled email and client login"
+          ],
+          "offers": [
+            { "@type": "Offer", "name": "Design partner", "price": "1500", "priceCurrency": "USD", "description": "Setup fee plus $199/month. Limited places, by application. For smaller agencies, in exchange for feedback and a case study." },
+            { "@type": "Offer", "name": "Build", "price": "4000", "priceCurrency": "USD", "description": "From $4,000 one-off. Wired to your live platforms, your metrics, role-based access, scheduled reports. Yours to keep." },
+            { "@type": "Offer", "name": "Multi-brand", "price": "12000", "priceCurrency": "USD", "description": "From $12,000 one-off. Multiple brands or offices, custom metrics and data sources, white-label domain and client logins." }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "Is this a product I subscribe to, or something you build for me?", "acceptedAnswer": { "@type": "Answer", "text": "A build. The demo shows the shape of it, then it gets wired to your platforms and fitted to the metrics and clients you actually manage." } },
+            { "@type": "Question", "name": "What is actually in the demo right now?", "acceptedAnswer": { "@type": "Answer", "text": "Sample data, end to end. Every number is invented so the console can be explored without connecting anything." } },
+            { "@type": "Question", "name": "We use a platform that is not on your list. Does that kill it?", "acceptedAnswer": { "@type": "Answer", "text": "Usually not. The build is scoped around whatever you actually report on. If something genuinely has no usable API you are told on the call rather than after paying." } },
+            { "@type": "Question", "name": "Who holds the data?", "acceptedAnswer": { "@type": "Answer", "text": "You do. It runs against your own platform connections in your own instance. Nothing is pooled with other agencies and nothing is resold." } },
+            { "@type": "Question", "name": "What does it cost?", "acceptedAnswer": { "@type": "Answer", "text": "Builds start at $4,000. The final number depends on how many platforms and how much of the reporting is bespoke, and you get a firm figure on the first call." } },
+            { "@type": "Question", "name": "Is it a subscription?", "acceptedAnswer": { "@type": "Answer", "text": "The build is a one-off and the result is yours. The design-partner tier is the exception: a lower setup fee with a monthly." } }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Static fallback. React replaces this the moment it mounts, so a person
+      sees it only as a first paint. It exists because this is a client-rendered
+      app: without it the HTML a crawler or an AI fetcher receives is an empty
+      div, and most of them do not run JavaScript. Same claims as the rendered
+      page - if the page changes materially, change this too.
+    -->
+    <div id="root">
+      <main style="max-width:44rem;margin:0 auto;padding:3rem 1.25rem;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;line-height:1.6;color:#191713">
+        <h1 style="font-size:2rem;line-height:1.2;margin:0 0 1rem">Stop rebuilding the same client report every month</h1>
+        <p>ReportBeacon is client reporting software for marketing agencies. One console for the ad, social and search platforms your agency already runs, carrying your brand instead of a vendor's. The client report builds off the same numbers, so the first week of the month stops disappearing into exports and slide decks.</p>
+        <p><a href="/app">Open the live demo</a> &mdash; no signup, no email, sample data throughout.</p>
+
+        <h2>The problem</h2>
+        <p>Most agencies land on Looker Studio because it is free, then find out what it costs. It is native to Google and nothing else, so every non-Google platform needs a paid connector. It puts a vendor footer on work you are charging a client for. Nothing sends itself. And every new client means building and then maintaining another report by hand.</p>
+
+        <h2>What it does</h2>
+        <ul>
+          <li>The whole client roster on one screen: health, leads, cost per lead, spend pacing against budget.</li>
+          <li>Alerts you before the client notices &mdash; a dropped lead source, a slipping response time, spend running ahead of budget.</li>
+          <li>Budget recommendations with the maths attached.</li>
+          <li>Client-ready reports in one click, or scheduled weekly or monthly and sent automatically.</li>
+          <li>Role-based access: the owner sees margin, account managers do not, clients get a read-only view.</li>
+          <li>White label throughout &mdash; console, reports, scheduled email and the client login all carry your agency.</li>
+        </ul>
+
+        <h2>Pricing</h2>
+        <ul>
+          <li><strong>Design partner &mdash; $1,500 setup, then $199/month.</strong> Limited places, by application. For smaller agencies, in exchange for feedback and a case study.</li>
+          <li><strong>Build &mdash; from $4,000 one-off.</strong> Wired to your live platforms, your metrics rather than a template, role-based access, reports that send themselves. Yours to keep.</li>
+          <li><strong>Multi-brand &mdash; from $12,000 one-off.</strong> Larger rosters, several brands, custom metrics and data sources, white-label domain and client logins.</li>
+        </ul>
+        <p>Every build is scoped on a call first, and the work is staged so you see it running rather than paying up front for a promise.</p>
+
+        <h2>Who builds it</h2>
+        <p>Tinashe Benson builds these directly rather than through a sales team. The demo on this page runs on the same codebase your instance starts from.</p>
+
+        <p><a href="https://www.tinashebenson.com/contact">Book a call</a> &middot; <a href="/llms.txt">Plain-text summary for AI readers</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

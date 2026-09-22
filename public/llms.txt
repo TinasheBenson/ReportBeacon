@@ -1,0 +1,92 @@
+# ReportBeacon
+
+> Client reporting software for marketing agencies. One console for the ad,
+> social and search platforms an agency already runs, carrying the agency's own
+> branding, with the client report built from the same numbers and sent on a
+> schedule. Sold as a build shaped around each agency, not as a seat licence.
+
+Site: https://demo.tinashebenson.com/
+Live demo: https://demo.tinashebenson.com/app — opens directly, no signup, no
+email, no login. Runs on sample data; nothing a visitor does is saved.
+Built by: Tinashe Benson — https://www.tinashebenson.com
+
+## Who it is for
+
+Marketing, PPC and SEO agencies running roughly 10–50 client accounts. The
+buyer is normally the agency owner or founder, because the thing being sold
+touches both client-facing work and agency margin.
+
+## The problem it addresses
+
+Most agencies report through Looker Studio because it is free, then meet its
+limits:
+
+- It is native to Google and nothing else, so every non-Google platform needs a
+  paid third-party connector, billed monthly and per platform.
+- It puts a vendor footer on a report the agency is charging a client for.
+- Nothing sends itself; someone has to remember.
+- Every new client means building, then maintaining, another report by hand.
+
+The result is that the first week of every month disappears into exports and
+rebuilt slide decks — work nobody scoped and everybody pays for.
+
+## What it does
+
+- The whole client roster on one screen: health, leads, cost per lead, and how
+  spend is pacing against budget.
+- Surfaces problems before the client calls: a dropped lead source, a response
+  time slipping past target, spend running ahead of budget.
+- Budget recommendations with the arithmetic shown. Can use a built-in engine or
+  a model connected through OpenRouter.
+- Client-ready reports in one click, on the real reporting dates.
+- Scheduled delivery, weekly or monthly, per client, automatic.
+- Role-based access: the agency owner sees margin, account managers see their
+  accounts without it, clients get a read-only view scoped to them.
+- White label throughout — console, reports, scheduled email and the client
+  login all carry the agency, with no vendor mark.
+
+## Platforms
+
+Built to sit on Google Ads, Meta Ads, Google Analytics 4, Google Business
+Profile, SEMrush, LinkedIn Ads, TikTok Ads and Local Services Ads, plus
+whatever else an agency reports on. The platform list is scoped per build.
+
+## Compared with Looker Studio
+
+| | Looker Studio | ReportBeacon |
+|---|---|---|
+| Non-Google platforms | Third-party connectors, billed monthly | Built into your instance |
+| Your branding | Vendor footer on every report | Your logo, colours and domain |
+| Adding a client | Rebuild and maintain a new report | Add the account |
+| Sending the report | Someone remembers to do it | Weekly or monthly, on its own |
+| Client access | Share a link and hope | Read-only seat, scoped to them |
+| Margin | Same view for everyone | Owner sees it, account managers do not |
+
+## Pricing
+
+- **Design partner — $1,500 setup, then $199/month.** Limited places, by
+  application. For smaller agencies, in exchange for real feedback and a case
+  study once it is running. Up to roughly 15 client dashboards.
+- **Build — from $4,000, one-off.** The usual shape: your platforms connected,
+  your reporting rebuilt around how the agency actually works, role-based access
+  across the team, reports that send themselves. Yours to keep.
+- **Multi-brand — from $12,000, one-off.** Larger rosters, bespoke metrics, or
+  several brands each needing their own front door. White-label domain and
+  client logins.
+
+Every build is scoped on a call before anything starts, and the work is staged
+so the buyer sees it running rather than paying up front for a promise.
+
+## Honest limitations
+
+- The public demo runs entirely on sample data. Every figure in it is invented
+  so the console can be explored without connecting any account. It is a
+  demonstration of how the product works, not a record of any real agency.
+- It is sold as a build, not as an off-the-shelf subscription product. What a
+  given agency ends up with is scoped on a call.
+- It is built by one person rather than a company with a support desk, which is
+  why engagements are staged rather than paid up front.
+
+## Contact
+
+Book a call: https://www.tinashebenson.com/contact
