@@ -54,10 +54,13 @@ const SOCIAL_DEMO = '/app/social'
 /**
  * Pricing. Edit these objects and the section below follows.
  *
- * Sized to who actually arrives here. The outbound lists are agencies at 5-50
- * staff, most of them 11-25 at $1M-5M revenue, so the entry tier has to be
- * reachable for a $2M shop or a cold visitor bounces on the number alone. The
- * top tier is a ceiling that makes the middle look reasonable, not a target.
+ * The boundaries are set from the outbound list rather than guessed. Its median
+ * is 17 staff and none of it is below 11, so Core spans 13-30 and catches about
+ * nine in ten of them; an earlier ladder let that same median read itself into
+ * the cheapest tier, which is the wrong way round when the middle tier is the
+ * one most people pick. Starter exists for the 5-10 staff LinkedIn segment,
+ * which otherwise arrives at a floor it cannot see itself in. Scale is a
+ * ceiling that makes Core look reasonable more than it is a target.
  *
  * The design-partner rate is not published. A public low number becomes the
  * anchor for every later quote; it is offered by application instead, which is
@@ -68,31 +71,36 @@ const PRICING: {
   points: string[]; cta: string; featured?: boolean; anchor?: string
 }[] = [
   {
-    name: 'Foundation',
-    price: '$4,000 – $7,000',
+    name: 'Starter',
+    price: 'From $3,500',
     unit: 'one-off',
-    fit: 'Agencies at roughly 5–25 staff',
-    blurb: 'The core system: every client in one place, your branding on it, reports that build themselves off the same numbers.',
+    fit: '5\u201312 staff',
+    blurb: 'The core system for a smaller shop: every client in one place, your branding on it, reports that build themselves.',
     points: [
       'Your platforms connected and syncing',
       'One view across the whole roster',
-      'Role-based access for your team',
       'Scheduled client reports, sent automatically',
+      'Your branding throughout',
       'Yours to keep',
     ],
     cta: 'Book a call',
   },
   {
-    name: 'Intelligence',
-    price: '$8,000 – $15,000',
+    // Deliberately where the modal prospect lands. The outbound list has a
+    // median of 17 staff, so the boundaries are set to put roughly nine in ten
+    // of them here rather than in the tier below - a middle tier is picked far
+    // more often than either side, and it should not be the cheap one.
+    name: 'Core',
+    price: 'From $9,000',
     unit: 'one-off',
-    fit: 'Agencies at roughly 15–50 staff',
-    blurb: 'Everything in Foundation, plus the layers that turn reporting into something your team decides from.',
+    fit: '13\u201330 staff',
+    blurb: 'Everything in Starter, plus the layers that turn reporting into something your team decides from rather than reads.',
     points: [
-      'Everything in Foundation',
+      'Everything in Starter',
       'Manual reporting removed end to end',
       'AI insight layer: what needs attention, and why',
       'Deeper integrations, including CRM and internal data',
+      'Role-based access: margin visible to you, not to the team',
       'Client-facing shareable views',
     ],
     cta: 'Book a call',
@@ -103,14 +111,14 @@ const PRICING: {
     // "Contact us" wall tests worse than one carrying a starting anchor,
     // and this tier's real job is to make the middle one look reasonable.
     // Delete `anchor` to go fully blank.
-    name: 'Full system',
+    name: 'Scale',
     price: 'Custom',
     unit: '',
     anchor: 'Typically from $18,000',
-    fit: 'Larger rosters and multi-brand groups',
+    fit: '30+ staff, or multi-brand',
     blurb: 'For agencies with several brands or offices, bespoke data sources, and a real appetite for querying their own numbers.',
     points: [
-      'Everything in Intelligence',
+      'Everything in Core',
       'Multiple brands, offices or regions',
       'Custom metrics and bespoke data sources',
       'AI interface: ask your data questions directly',
@@ -120,9 +128,25 @@ const PRICING: {
   },
 ]
 
+/**
+ * Support is not framed as optional, because it is not really optional:
+ * OAuth tokens expire, Meta changes its API, Google deprecates fields. A build
+ * left unmaintained quietly degrades, and saying otherwise oversells the
+ * one-off. Optimisation genuinely is optional.
+ */
 const ONGOING = [
-  { name: 'Support', price: '$400 – $1,200 / mo', note: 'Kept running, platforms re-authorised, breakages fixed.' },
-  { name: 'Optimisation', price: '$1,200 – $2,500 / mo', note: 'Ongoing changes as your roster, metrics and team shift.' },
+  {
+    name: 'Support',
+    price: 'From $400 / mo',
+    tag: 'First 3 months included',
+    note: 'Platforms re-authorised, API changes absorbed, breakages fixed. Continues after the included months unless you cancel.',
+  },
+  {
+    name: 'Optimisation',
+    price: 'From $1,200 / mo',
+    tag: 'Optional',
+    note: 'Ongoing changes as your roster, metrics and team shift. Plenty of agencies never need this.',
+  },
 ]
 
 /** Qualifying. Saying who this is not for protects the price before anyone asks. */
@@ -191,11 +215,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does it cost?',
-    a: 'Builds start at $4,000, and the pricing above shows where each tier lands. The final number depends on how many platforms and how much of your reporting is bespoke, so you get a firm figure on the first call rather than a follow-up email a week later.',
+    a: 'Starter opens at $3,500, Core at $9,000, and Scale is custom, typically from $18,000. Where you land depends on how many platforms and how much of your reporting is bespoke, so you get a firm figure on the first call rather than a follow-up email a week later.',
   },
   {
     q: 'Is it a subscription?',
-    a: 'The build is a one-off and the result is yours. The design-partner tier is the exception: a lower setup fee with a monthly, because those places exist to get the product in front of real agencies early.',
+    a: 'The build is a one-off and the result is yours. Support is the ongoing part: three months are included, then it continues monthly unless you cancel. That is not padding - platforms change their APIs and expire their tokens, and an unmaintained build goes stale. Optimisation on top of that is genuinely optional.',
   },
 ]
 
@@ -509,7 +533,7 @@ export default function Landing() {
           <div className="text-center max-w-[620px] mx-auto mb-11">
             <h2 className="text-[28px] md:text-[34px] font-bold tracking-[-0.02em]">What it costs</h2>
             <p className="mt-3 text-[15px] text-[var(--ink-2)]">
-              A build, not a seat licence. You are not paying monthly for the rest of the agency's life.
+              A build you own, not a seat licence you rent. The system itself is a one-off; only keeping it running is monthly.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5 items-start">
@@ -558,19 +582,20 @@ export default function Landing() {
             ))}
           </div>
           <div className="mt-8 max-w-[760px] mx-auto rounded-[14px] border border-[var(--line)] bg-[var(--surface-2)] p-5">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)] mb-3">Ongoing, if you want it</div>
+            <div className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)] mb-3">After it ships</div>
             <div className="grid sm:grid-cols-2 gap-4">
               {ONGOING.map((o) => (
                 <div key={o.name}>
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-[14px] font-bold">{o.name}</span>
                     <span className="text-[13.5px] text-[var(--accent)] font-semibold">{o.price}</span>
+                    <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--line)] text-[var(--muted)]">{o.tag}</span>
                   </div>
                   <p className="mt-1 text-[13px] text-[var(--ink-2)] leading-relaxed">{o.note}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[12.5px] text-[var(--muted)]">Optional. The build stands on its own without either.</p>
+            <p className="mt-3 text-[12.5px] text-[var(--muted)]">Platforms change their APIs constantly. Support is what keeps a build working rather than slowly going stale.</p>
           </div>
           <p className="mt-6 text-center text-[13px] text-[var(--muted)] max-w-[620px] mx-auto">
             Every build is scoped on a call first. You get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise. Smaller agencies: a limited number of design-partner places exist at a reduced rate &mdash; ask on the call.

@@ -65,22 +65,25 @@ whatever else an agency reports on. The platform list is scoped per build.
 
 ## Pricing
 
-A custom-built internal system, not a SaaS subscription.
+A custom-built internal system, not a SaaS subscription. Tier boundaries are
+set by agency headcount.
 
-- **Foundation — $4,000 to $7,000, one-off.** For agencies at roughly 5–25
-  staff. Platforms connected and syncing, one view across the whole roster,
-  role-based access for the team, scheduled client reports. Yours to keep.
-- **Intelligence — $8,000 to $15,000, one-off.** For agencies at roughly 15–50
-  staff. Everything in Foundation, plus manual reporting removed end to end, an
-  AI insight layer, deeper integrations including CRM and internal data, and
-  client-facing shareable views.
-- **Full system — custom, typically from $18,000.** Larger rosters and
-  multi-brand groups: multiple brands, offices or regions, bespoke data sources,
-  an AI interface for querying the data directly, white-label domain and client
-  logins.
+- **Starter — from $3,500, one-off.** Agencies at 5–12 staff. Platforms
+  connected and syncing, one view across the whole roster, scheduled client
+  reports, your branding throughout. Yours to keep.
+- **Core — from $9,000, one-off.** Agencies at 13–30 staff. Everything in
+  Starter, plus manual reporting removed end to end, an AI insight layer,
+  deeper integrations including CRM and internal data, role-based access with
+  margin visible to the owner and not the team, and client-facing shareable
+  views.
+- **Scale — custom, typically from $18,000.** 30+ staff or multi-brand:
+  multiple brands, offices or regions, bespoke data sources, an AI interface
+  for querying the data directly, white-label domain and client logins.
 
-Optional ongoing, neither required: support $400–$1,200/month, optimisation
-$1,200–$2,500/month.
+After it ships: support from $400/month, with the first three months included
+and continuing unless cancelled — platforms change their APIs and expire their
+tokens, so an unmaintained build goes stale. Optimisation from $1,200/month is
+genuinely optional and many agencies never take it.
 
 Every build is scoped on a call before anything starts, and the work is staged
 so the buyer sees it running rather than paying up front for a promise. A
