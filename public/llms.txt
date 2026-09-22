@@ -69,12 +69,12 @@ Three packages, priced by what gets built rather than by agency headcount.
 Each is cumulative and each is a one-off the agency owns. No tier caps the
 client roster — an agency never chooses which of its clients to include.
 
-- **Starter — from $3,500, one-off.** Internal visibility. Every client account
-  the agency manages, with up to 4 data sources connected — GA4, Google Ads,
-  Meta and Google Business Profile. One summary across the whole roster,
-  exportable at any time, and team access with roles. It carries no branding,
-  nothing is scheduled, and nothing in it is client-ready, so it is for the
-  agency's own eyes rather than something to hand a client.
+- **Starter — from $3,500, one-off.** One overview for the whole team. Every
+  client account the agency manages, with up to 4 data sources connected — GA4,
+  Google Ads, Meta and Google Business Profile. The same overview for everyone
+  who opens it, exportable at any time. There are no roles or permissions at
+  this tier, and nothing in it is branded or client-ready: it is built for
+  looking rather than sending.
 - **Core — from $9,000, one-off.** Everything in Starter, plus up to 8 data
   sources — adding Local Services Ads, LinkedIn, TikTok and SEMrush — the CRM
   and call tracking wired in, the agency's logo and report template throughout,
@@ -93,8 +93,10 @@ and continuing unless cancelled — platforms change their APIs and expire their
 tokens, so an unmaintained build goes stale. Optimisation from $1,200/month is
 genuinely optional and many agencies never take it.
 
-Every build is scoped on a call before anything starts, and the work is staged
-so the buyer sees it running rather than paying up front for a promise. A
+Starting on Starter and moving up later costs the difference, not twice — it is
+the same system either way. Every build is scoped on a call before anything
+starts, and the work is staged so the buyer sees it running rather than paying
+up front for a promise. A
 limited number of design-partner places exist at a reduced rate for smaller
 agencies, by application rather than as a published price.
 

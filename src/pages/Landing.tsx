@@ -68,28 +68,26 @@ const SOCIAL_DEMO = '/app/social'
  */
 const PRICING: {
   name: string; price: string; unit: string; fit: string; blurb: string;
-  points: string[]; cta: string; featured?: boolean; anchor?: string; limits?: string[]
+  points: string[]; cta: string; featured?: boolean; anchor?: string; note?: string
 }[] = [
   {
-    // Starter is deliberately internal-only. Nobody should be choosing which
-    // clients to include, so the roster is never capped; what is capped is how
-    // many sources get wired and whether any of it is fit to leave the building.
+    // Starter is deliberately plain: one overview, no roles, no branding,
+    // nothing that leaves the building. The boundary is stated as what it is
+    // for rather than as a list of things withheld - a pair of crossed-out
+    // features under the price reads as a paywall taunt, which is the one way
+    // to make an honest entry tier feel like a trap.
     name: 'Starter',
     price: 'From $3,500',
     unit: 'one-off',
-    fit: 'Your numbers in one place, for your eyes',
-    blurb: 'Every client you run, in a single view you can finally read. Internal visibility - not something you hand to a client yet.',
+    fit: 'One overview, for the whole team',
+    blurb: 'Every client you run, in a single view anyone in the agency can open. The plainest version of the thing: know where you stand, without logging into four platforms to find out.',
     points: [
       'Every client account you manage \u2014 never a capped roster',
       'Up to 4 data sources \u2014 GA4, Google Ads, Meta and Google Business Profile',
-      'One summary across the whole roster',
-      'Export what you see, whenever you want',
-      'Team access with roles',
+      'One overview, the same for everyone who opens it',
+      'Export it whenever you want',
     ],
-    limits: [
-      'No branding \u2014 it carries no logo, yours or mine',
-      'Nothing scheduled, and nothing client-ready to send',
-    ],
+    note: 'Built for looking, not sending. Nothing here is branded or client-ready \u2014 the moment you need that, it is Core.',
     cta: 'Book a call',
   },
   {
@@ -574,16 +572,10 @@ Three packages, priced by what gets built rather than how big you are. Each one 
                     </li>
                   ))}
                 </ul>
-                {/* Naming the ceiling is what makes the next tier obviously
-                    worth it, and stops a buyer discovering it after paying. */}
-                {t.limits && (
-                  <ul className="mt-3 pt-3 border-t border-[var(--line)] grid gap-2">
-                    {t.limits.map((lt) => (
-                      <li key={lt} className="flex items-start gap-2 text-[13px] text-[var(--muted)]">
-                        <X size={14} className="mt-[3px] shrink-0" /> {lt}
-                      </li>
-                    ))}
-                  </ul>
+                {t.note && (
+                  <p className="mt-3 pt-3 border-t border-[var(--line)] text-[13px] text-[var(--muted)] leading-relaxed">
+                    {t.note}
+                  </p>
                 )}
                 <div className="flex-1" />
                 <a
@@ -616,7 +608,7 @@ Three packages, priced by what gets built rather than how big you are. Each one 
             <p className="mt-3 text-[12.5px] text-[var(--muted)]">Platforms change their APIs constantly. Support is what keeps a build working rather than slowly going stale.</p>
           </div>
           <p className="mt-6 text-center text-[13px] text-[var(--muted)] max-w-[620px] mx-auto">
-            Every build is scoped on a call first. You get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise. Smaller agencies: a limited number of design-partner places exist at a reduced rate &mdash; ask on the call.
+            Start on Starter and move up later and you pay the difference, not twice &mdash; it is the same system either way. Every build is scoped on a call first, so you get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise. Smaller agencies: a limited number of design-partner places exist at a reduced rate &mdash; ask on the call.
           </p>
         </section>
       </Rise>
