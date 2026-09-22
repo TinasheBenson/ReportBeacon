@@ -1,14 +1,20 @@
 /**
- * App-wide state: theme, the signed-in user (real email+password session), the
- * active date range, nav collapse, and the OpenRouter AI config.
+ * App-wide state: theme, the active demo seat, the date range, nav collapse,
+ * and the OpenRouter AI config.
  *
- * Auth is a server session (httpOnly cookie): on mount we resolve /api/me. The
- * user's workspace role maps to the console's seat model so every scoped view
- * (roster, economics, read-only) keeps working. UI preferences persist locally.
+ * There is no sign-in. This build is a demo a stranger opens from a cold email,
+ * so a credential prompt between them and the product only loses them, and a
+ * session round-trip makes the whole thing fail whenever the backend is cold.
+ * The visitor picks a seat instead, and that choice drives every scoped view -
+ * roster, economics, read-only - exactly as a real role would.
+ *
+ * `user` stays in the shape the data contexts expect and is always null, which
+ * is deliberate: null is their zero-backend path, already written and already
+ * feeding the local demo roster. UI preferences persist locally.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { RANGES, type RangeId } from '@/lib/data'
-import { apiClient, type ApiUser } from '@/lib/apiClient'
+import { type ApiUser } from '@/lib/apiClient'
 
 type Theme = 'light' | 'dark'
 export type Role = 'owner' | 'manager' | 'viewer'
@@ -16,7 +22,7 @@ export type Face = 'performance' | 'social'
 export interface AIConfigState { key: string; model: string }
 export interface SessionUser extends ApiUser { role: Role }
 
-// The workspace role drives which seat identity the console scopes to.
+// Which seat identity in the demo roster each role scopes to.
 const ROLE_SEAT: Record<Role, string> = { owner: 'owner', manager: 'dana', viewer: 'priya' }
 
 interface AppState {
@@ -27,14 +33,13 @@ interface AppState {
   face: Face
   setFace: (f: Face) => void
 
-  // Auth. `checking` gates the app until the session is resolved.
+  /** Always null: the data contexts treat that as "no backend", which is the
+   *  demo path. Kept so those contexts need no change. */
   user: SessionUser | null
-  checking: boolean
+  /** The seat the visitor is viewing as. Switching it rescopes the console. */
   role: Role
-  seatId: string | null
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
-  signOut: () => void
+  setRole: (r: Role) => void
+  seatId: string
 
   range: RangeId
   setRange: (r: RangeId) => void
@@ -83,15 +88,15 @@ function initialTheme(): Theme {
   return 'light'
 }
 
-function toSessionUser(me: { user: ApiUser; workspaces: { role: Role }[] }): SessionUser {
-  return { ...me.user, role: me.workspaces[0]?.role ?? 'owner' }
+function readRole(): Role {
+  const v = readLS<unknown>('rb-role', 'owner')
+  return v === 'manager' || v === 'viewer' ? v : 'owner'
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme)
   const [face, setFaceState] = useState<Face>(readFace)
-  const [user, setUser] = useState<SessionUser | null>(null)
-  const [checking, setChecking] = useState(true)
+  const [role, setRoleState] = useState<Role>(readRole)
   const [range, setRangeState] = useState<RangeId>(readRange)
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => readLS<boolean>('rb-nav', false))
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -102,18 +107,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     writeLS('rb-theme', theme)
   }, [theme])
 
-  // Resolve the existing session once on load.
-  useEffect(() => {
-    let cancelled = false
-    apiClient.me()
-      .then((me) => { if (!cancelled) setUser(toSessionUser(me as any)) })
-      .catch(() => { if (!cancelled) setUser(null) })
-      .finally(() => { if (!cancelled) setChecking(false) })
-    return () => { cancelled = true }
-  }, [])
-
-  const role: Role = user?.role ?? 'manager'
-  const seatId = user ? (ROLE_SEAT[user.role] ?? 'owner') : null
+  const seatId = ROLE_SEAT[role] ?? 'owner'
 
   const value: AppState = {
     theme,
@@ -122,10 +116,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     face,
     setFace: (f) => { setFaceState(f); writeLS('rb-face', f) },
 
-    user, checking, role, seatId,
-    login: async (email, password) => { setUser(toSessionUser((await apiClient.login(email, password)) as any)) },
-    register: async (email, password, name) => { setUser(toSessionUser((await apiClient.register(email, password, name)) as any)) },
-    signOut: () => { apiClient.logout().catch(() => {}); setUser(null); try { localStorage.removeItem('rb-ws') } catch {} },
+    user: null,
+    role, seatId,
+    setRole: (r) => { setRoleState(r); writeLS('rb-role', r) },
 
     range,
     setRange: (r) => { setRangeState(r); writeLS('rb-range', r) },

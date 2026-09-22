@@ -30,13 +30,65 @@ const BOOK_A_CALL = 'https://www.tinashebenson.com/contact'
 const EASE = [0.16, 1, 0.3, 1] as const
 const SOCIAL_BLUE = '#2563eb'
 
+/** The console has no sign-in at all now, so these are plain links. */
+const DEMO_ENTRY = '/app'
+const SOCIAL_DEMO = '/app/social'
+
 /**
- * Every CTA carries ?demo=owner so the prospect lands inside the console rather
- * than on the sign-in form. The hero promises "no signup, no email" - a login
- * wall between that promise and the product is where a cold visitor leaves.
+ * Pricing. Edit these three objects and the section below follows.
+ *
+ * The design-partner rate is deliberately framed as limited and by application
+ * rather than as a published price. A public low number becomes the anchor for
+ * every later quote, and a firm that looks similar from outside will ask why
+ * they are being charged more.
  */
-const DEMO_ENTRY = '/app?demo=owner'
-const SOCIAL_DEMO = '/app/social?demo=owner'
+const PRICING: {
+  name: string; price: string; unit: string; blurb: string;
+  points: string[]; cta: string; featured?: boolean; note?: string
+}[] = [
+  {
+    name: 'Design partner',
+    price: '$1,500',
+    unit: 'setup, then $199/mo',
+    blurb: 'For smaller agencies, in exchange for real feedback and a case study once it is running.',
+    points: [
+      'Up to ~15 client dashboards',
+      'Your branding throughout',
+      'You steer what gets built next',
+      'Scheduled client reports',
+    ],
+    cta: 'Apply for a place',
+    note: 'Limited places, by application',
+  },
+  {
+    name: 'Build',
+    price: 'From $4,000',
+    unit: 'one-off',
+    blurb: 'The usual shape: your platforms connected, your reporting rebuilt around how your agency actually works.',
+    points: [
+      'Wired to your live platforms',
+      'Your metrics, not a template',
+      'Role-based access across your team',
+      'Reports that send themselves',
+      'Yours to keep',
+    ],
+    cta: 'Book a call',
+    featured: true,
+  },
+  {
+    name: 'Multi-brand',
+    price: 'From $12,000',
+    unit: 'one-off',
+    blurb: 'Larger rosters, bespoke metrics, or several brands that each need their own front door.',
+    points: [
+      'Everything in Build',
+      'Multiple brands or offices',
+      'Custom metrics and data sources',
+      'White-label domain and client logins',
+    ],
+    cta: 'Book a call',
+  },
+]
 
 const SOCIAL_PLATFORMS: { id: SocialPlatformId; name: string; note: string }[] = [
   { id: 'instagram', name: 'Instagram', note: 'Reach & engagement' },
@@ -83,7 +135,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does it cost?',
-    a: 'Scoped per agency, because client count and platform mix change the work substantially. You get a real number on the first call, not a follow-up email a week later.',
+    a: 'Builds start at $4,000, and the pricing above shows where each tier lands. The final number depends on how many platforms and how much of your reporting is bespoke, so you get a firm figure on the first call rather than a follow-up email a week later.',
+  },
+  {
+    q: 'Is it a subscription?',
+    a: 'The build is a one-off and the result is yours. The design-partner tier is the exception: a lower setup fee with a monthly, because those places exist to get the product in front of real agencies early.',
   },
 ]
 
@@ -114,6 +170,7 @@ export default function Landing() {
           <span className="font-bold text-[16px] tracking-[-0.01em]">ReportBeacon</span>
           <div className="flex-1" />
           <a href="#compare" className="hidden md:inline-flex items-center text-[13.5px] font-medium px-3 py-2 rounded-[9px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">Why not Looker Studio</a>
+          <a href="#pricing" className="hidden md:inline-flex items-center text-[13.5px] font-medium px-3 py-2 rounded-[9px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">Pricing</a>
           <a href="#faq" className="hidden md:inline-flex items-center text-[13.5px] font-medium px-3 py-2 rounded-[9px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">Questions</a>
           <button onClick={toggleTheme} aria-label="Toggle theme" className="grid place-items-center w-9 h-9 rounded-[8px] text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors">
             {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
@@ -359,6 +416,66 @@ export default function Landing() {
               </div>
             </div>
           </div>
+        </section>
+      </Rise>
+
+      {/* Pricing - after the comparison, so the number lands on someone who
+          has already seen what it replaces. */}
+      <Rise>
+        <section id="pricing" className="mx-auto max-w-[1120px] px-5 py-14 md:py-20 scroll-mt-[76px]">
+          <div className="text-center max-w-[620px] mx-auto mb-11">
+            <h2 className="text-[28px] md:text-[34px] font-bold tracking-[-0.02em]">What it costs</h2>
+            <p className="mt-3 text-[15px] text-[var(--ink-2)]">
+              A build, not a seat licence. You are not paying monthly for the rest of the agency's life.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5 items-start">
+            {PRICING.map((t) => (
+              <div
+                key={t.name}
+                className={`h-full flex flex-col rounded-[16px] p-6 bg-[var(--surface)] shadow-[var(--shadow)] ${
+                  t.featured
+                    ? 'border-2 border-[var(--accent)] md:-mt-3 md:pb-8 shadow-[var(--shadow-pop)]'
+                    : 'border border-[var(--line)]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-[16px] font-bold tracking-[-0.01em]">{t.name}</h3>
+                  {t.featured && (
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full bg-[var(--accent-weak)] text-[var(--accent)]">
+                      Most agencies
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-[30px] font-bold tracking-[-0.03em] leading-none">{t.price}</span>
+                  <span className="text-[13px] text-[var(--muted)]">{t.unit}</span>
+                </div>
+                {t.note && <div className="mt-1.5 text-[12px] font-semibold text-[var(--accent)]">{t.note}</div>}
+                <p className="mt-3 text-[13.5px] text-[var(--ink-2)] leading-relaxed">{t.blurb}</p>
+                <ul className="mt-5 grid gap-2 flex-1">
+                  {t.points.map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-[13.5px] text-[var(--ink-2)]">
+                      <Check size={15} className="mt-[3px] shrink-0" style={{ color: 'var(--good)' }} /> {pt}
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={BOOK_A_CALL}
+                  className={`mt-6 inline-flex items-center justify-center gap-2 text-[14.5px] font-semibold px-5 py-2.5 rounded-[10px] transition-opacity ${
+                    t.featured
+                      ? 'bg-[var(--accent)] text-white hover:opacity-90'
+                      : 'bg-[var(--surface-2)] border border-[var(--line-2)] text-[var(--ink)] hover:bg-[var(--surface)]'
+                  }`}
+                >
+                  {t.cta} <ArrowRight size={15} />
+                </a>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-[13px] text-[var(--muted)] max-w-[620px] mx-auto">
+            Every build is scoped on a call first. You get a firm number before anything starts, and the work is staged so you see it running rather than paying up front for a promise.
+          </p>
         </section>
       </Rise>
 

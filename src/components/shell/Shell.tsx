@@ -5,9 +5,10 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  LayoutGrid, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, LogOut,
+  LayoutGrid, Users, Bell, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, CalendarClock,
+  SlidersHorizontal, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, Repeat,
 } from 'lucide-react'
-import { useApp, type Face } from '@/context/app'
+import { useApp, type Face, type Role } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
 import { useSocial } from '@/context/social'
 import { useTrimmedLogo } from '@/lib/logo'
@@ -60,10 +61,18 @@ function clearFace() {
   root.removeProperty('--accent')
   for (const k of CHROME_KEYS) root.removeProperty(k)
 }
-import { IconButton } from '@/components/ui/kit'
+import { IconButton, Segmented } from '@/components/ui/kit'
 
 type NavItem = { to: string; label: string; icon: any; end?: boolean; badge?: boolean }
 
+const PERF_NAV: NavItem[] = [
+  { to: '/app', label: 'Portfolio', icon: LayoutGrid, end: true },
+  { to: '/app/accounts', label: 'Accounts', icon: Users },
+  { to: '/app/recommendations', label: 'Recommendations', icon: Lightbulb },
+  { to: '/app/alerts', label: 'Alerts', icon: Bell, badge: true },
+  { to: '/app/reports', label: 'Reports', icon: FileText },
+  { to: '/app/automations', label: 'Automations', icon: CalendarClock },
+]
 const SOCIAL_NAV: NavItem[] = [
   { to: '/app/social', label: 'Overview', icon: LayoutGrid, end: true },
   { to: '/app/social/recommendations', label: 'Recommendations', icon: Lightbulb },
@@ -85,8 +94,8 @@ function pageTitle(path: string): string {
 const SHARED_PATHS = ['/app/team', '/app/branding', '/app/settings']
 
 export default function Shell() {
-  const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, signOut } = useApp()
-  const { me, isAdmin, accountsForSeat, brand, openAlerts } = useWorkspace()
+  const { navCollapsed, toggleNav, mobileNavOpen, setMobileNavOpen, theme, toggleTheme, role, setRole, face: appFace, setFace } = useApp()
+  const { me, isAdmin, accountsForSeat, brand, openAlerts, mode } = useWorkspace()
   const { accounts: socialAccounts } = useSocial()
   const location = useLocation()
   const navigate = useNavigate()
@@ -94,37 +103,36 @@ export default function Shell() {
   const alertCount = openAlerts(scoped).length
   const seat = me
 
-  // Social is the only face with a real data source, so it is the only one the
-  // shell offers. The Performance branches are gone rather than hidden: a nav
-  // item that leads to invented numbers is worse than a missing one.
-  const face: Face = 'social'
-  const home = '/app/social'
+  const onSocialPath = location.pathname.startsWith('/app/social')
+  const face: Face = mode === 'social' ? 'social' : mode === 'performance' ? 'performance' : (onSocialPath ? 'social' : appFace)
+  const home = face === 'social' ? '/app/social' : '/app'
 
-  const nav1 = SOCIAL_NAV
+  const nav1 = face === 'social' ? SOCIAL_NAV : PERF_NAV
   const NAV_2: NavItem[] = [
     ...(isAdmin ? [
+      ...(face === 'performance' ? [{ to: '/app/alert-rules', label: 'Alert rules', icon: SlidersHorizontal }] : []),
       { to: '/app/team', label: 'Team & access', icon: UsersRound },
       { to: '/app/branding', label: 'Branding', icon: Palette },
     ] : []),
-    { to: '/app/social/integrations', label: 'Integrations', icon: Cable },
+    { to: face === 'social' ? '/app/social/integrations' : '/app/integrations', label: 'Integrations', icon: Cable },
     { to: '/app/settings', label: 'Settings', icon: SettingsIcon },
   ]
 
   useEffect(() => { setMobileNavOpen(false) }, [location.pathname, setMobileNavOpen])
 
-  // Everything outside the shared settings pages belongs to the Social face,
-  // so anything else lands there. The router redirects the old Performance
-  // paths too; this catches a stale in-app link.
+  // Keep the route consistent with the workspace mode.
   useEffect(() => {
     const path = location.pathname
-    if (!path.startsWith('/app/social') && !SHARED_PATHS.includes(path)) {
-      navigate('/app/social', { replace: true })
-    }
-  }, [location.pathname, navigate])
+    const social = path.startsWith('/app/social')
+    const shared = SHARED_PATHS.includes(path)
+    if (mode === 'performance' && social) navigate('/app', { replace: true })
+    else if (mode === 'social' && !social && !shared) navigate('/app/social', { replace: true })
+    else if (mode === 'both' && appFace === 'social' && path === '/app') navigate('/app/social', { replace: true })
+  }, [mode, appFace, location.pathname, navigate])
 
   // White-label: paint the active face's brand colour onto the chrome (rail +
   // accents) and set the highlight, easing it across on a switch or brand edit.
-  const pal = brand.social
+  const pal = face === 'social' ? brand.social : brand.performance
   useEffect(() => {
     const el = document.documentElement
     el.classList.add('theme-morph')
@@ -135,7 +143,15 @@ export default function Shell() {
   useEffect(() => clearFace, [])
 
   const railWidth = navCollapsed ? 'lg:w-[68px]' : 'lg:w-[236px]'
-  const doSignOut = () => { signOut(); navigate('/app') }
+  // No sign-out: there is no session. Cycling the seat is the thing worth
+  // doing here - it is what shows a visitor that access is actually scoped.
+  const SEAT_CYCLE: Role[] = ['owner', 'manager', 'viewer']
+  const nextSeat = () => {
+    const next = SEAT_CYCLE[(SEAT_CYCLE.indexOf(role) + 1) % SEAT_CYCLE.length]
+    setRole(next)
+    navigate(next === 'viewer' && location.pathname.includes('/alert-rules') ? '/app' : location.pathname)
+  }
+  const switchFace = (f: Face) => { setFace(f); navigate(f === 'social' ? '/app/social' : '/app') }
 
   return (
     <div className="min-h-screen">
@@ -158,10 +174,10 @@ export default function Shell() {
                   <div className="text-[11px] text-[var(--chrome-muted)]">{seat?.title}</div>
                 </div>
               )}
-              {!navCollapsed && <IconButton chrome label="Sign out" onClick={doSignOut} className="w-8 h-8"><LogOut size={15} /></IconButton>}
+              {!navCollapsed && <IconButton chrome label="Switch seat" onClick={nextSeat} className="w-8 h-8"><Repeat size={15} /></IconButton>}
             </div>
             {navCollapsed && (
-              <button onClick={doSignOut} title="Sign out" className="hidden lg:flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><LogOut size={15} /></button>
+              <button onClick={nextSeat} title="Switch seat" className="hidden lg:flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><Repeat size={15} /></button>
             )}
             <button
               onClick={toggleNav}
@@ -182,7 +198,10 @@ export default function Shell() {
               Synced 4 min ago
             </span>
             <div className="flex-1" />
-            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{socialAccounts.length} accounts</span>
+            {mode === 'both' && (
+              <Segmented value={face} onChange={switchFace} size="sm" options={[{ value: 'performance', label: 'Performance' }, { value: 'social', label: 'Social' }]} />
+            )}
+            <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{face === 'social' ? `${socialAccounts.length} accounts` : seat?.role === 'owner' ? 'Agency view' : `${scoped.length} accounts`}</span>
             <IconButton label="Toggle light and dark" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
           </header>
 

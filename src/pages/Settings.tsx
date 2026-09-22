@@ -1,8 +1,8 @@
 /** Settings: workspace preferences, wired to real app state. */
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
-import { LogOut, ArrowRight, RotateCcw } from 'lucide-react'
+import { ArrowRight, RotateCcw } from 'lucide-react'
 import { useApp } from '@/context/app'
 import { useWorkspace } from '@/context/workspace'
 import { RANGES } from '@/lib/data'
@@ -11,10 +11,9 @@ import { Card, Segmented, Toggle, Button } from '@/components/ui/kit'
 import { Reveal } from '@/components/ui/disclosure'
 
 export default function Settings() {
-  const { theme, setTheme, range, setRange, signOut, ai } = useApp()
+  const { theme, setTheme, range, setRange, role, setRole, ai } = useApp()
   const { me, accountsForSeat, resetWorkspace } = useWorkspace()
   const seat = me
-  const navigate = useNavigate()
   const [alertEmail, setAlertEmail] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -37,7 +36,21 @@ export default function Settings() {
             <div className="text-[14px] font-semibold">{seat?.name}</div>
             <div className="text-[12px] text-[var(--muted)]">{seat?.title} · {seat?.role === 'owner' ? 'all accounts' : `${seat ? accountsForSeat(seat).length : 0} accounts`}</div>
           </div>
-          <Button onClick={() => { signOut(); navigate('/app') }}><LogOut size={15} /> Sign out</Button>
+        </div>
+        {/* There is no session to end, so the useful control here is the seat
+            itself: switching it is how a visitor sees access actually scope. */}
+        <div className="mt-4 pt-4 border-t border-[var(--line)]">
+          <Row label="Viewing as" hint="Switch seat to see what each role is allowed to see">
+            <Segmented
+              value={role}
+              onChange={setRole}
+              options={[
+                { value: 'owner', label: 'Owner' },
+                { value: 'manager', label: 'Manager' },
+                { value: 'viewer', label: 'Viewer' },
+              ]}
+            />
+          </Row>
         </div>
       </Card>
 
