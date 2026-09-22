@@ -6,7 +6,7 @@ import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   LayoutGrid, Users, Bell, FileText, Cable, Settings as SettingsIcon, Lightbulb, UsersRound, Palette, CalendarClock,
-  SlidersHorizontal, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, Repeat,
+  SlidersHorizontal, PanelLeftClose, PanelLeftOpen, Menu, X, Sun, Moon, Repeat, LogOut, ArrowLeft,
 } from 'lucide-react'
 import { useApp, type Face, type Role } from '@/context/app'
 import { useWorkspace, type Palette as Pal } from '@/context/workspace'
@@ -176,8 +176,19 @@ export default function Shell() {
               )}
               {!navCollapsed && <IconButton chrome label="Switch seat" onClick={nextSeat} className="w-8 h-8"><Repeat size={15} /></IconButton>}
             </div>
+            {!navCollapsed && (
+              <Link
+                to="/"
+                className="flex items-center gap-2.5 w-full px-2 py-2 mt-1 rounded-[8px] text-[13px] text-[var(--chrome-ink-2)] hover:bg-[var(--chrome-hover)] hover:text-[var(--chrome-ink)] transition-colors"
+              >
+                <LogOut size={16} /> Leave the demo
+              </Link>
+            )}
             {navCollapsed && (
-              <button onClick={nextSeat} title="Switch seat" className="hidden lg:flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><Repeat size={15} /></button>
+              <div className="hidden lg:flex flex-col items-center gap-1">
+                <button onClick={nextSeat} title="Switch seat" className="flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><Repeat size={15} /></button>
+                <Link to="/" title="Leave the demo" aria-label="Leave the demo" className="flex w-full justify-center py-1.5 text-[var(--chrome-muted)] hover:text-[var(--chrome-ink)]"><LogOut size={15} /></Link>
+              </div>
             )}
             <button
               onClick={toggleNav}
@@ -203,6 +214,16 @@ export default function Shell() {
             )}
             <span className="hidden lg:inline text-[12px] text-[var(--muted)]">{face === 'social' ? `${socialAccounts.length} accounts` : seat?.role === 'owner' ? 'Agency view' : `${scoped.length} accounts`}</span>
             <IconButton label="Toggle light and dark" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</IconButton>
+            {/* The console has no session to end, but a visitor still needs a
+                way back to the pitch. Without this the only exit is the browser
+                back button. */}
+            <Link
+              to="/"
+              data-testid="exit-demo"
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-[8px] border border-[var(--line-2)] text-[var(--ink-2)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)] transition-colors"
+            >
+              <ArrowLeft size={14} /> <span className="hidden sm:inline">Back to site</span>
+            </Link>
           </header>
 
           <main className="px-4 lg:px-6 py-5 pb-16 max-w-[1360px]">
