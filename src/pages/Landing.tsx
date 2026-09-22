@@ -16,7 +16,7 @@
  * out. The demo doing what it says is the proof on offer.
  */
 import { motion } from 'framer-motion'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import {
   ArrowRight, LayoutGrid, BellRing, Wallet, FileText, CalendarClock, Palette,
   Sun, Moon, Check, Play, X, Plug, SlidersHorizontal, Send,
@@ -29,6 +29,23 @@ import type { SocialPlatformId } from '@/lib/social'
 const BOOK_A_CALL = 'https://www.tinashebenson.com/contact'
 const EASE = [0.16, 1, 0.3, 1] as const
 const SOCIAL_BLUE = '#2563eb'
+
+/**
+ * Message match for the cold-email traffic.
+ *
+ * The outbound sequence hooks on one specific, tactical thing - the ad
+ * platforms disagreeing about who produced a lead - and describes what I build
+ * as "reporting dashboards". This page argues the broader case: fragmentation,
+ * a system rather than a dashboard. Both are true, but a visitor who arrives
+ * expecting the first and reads the second decides they are in the wrong place
+ * before the second line.
+ *
+ * Email 1 carries no link, so the URL is pasted by hand into a reply. That
+ * makes a variant cheap: send ?from=email and the hero echoes the email it
+ * came from. Everything below the hero is shared, so there is nothing to keep
+ * in sync and no second page to maintain.
+ */
+const EMAIL_REF = 'email'
 
 /** The console has no sign-in at all now, so these are plain links. */
 const DEMO_ENTRY = '/app'
@@ -198,6 +215,8 @@ function Rise({ children, delay = 0, className = '' }: { children: React.ReactNo
 
 export default function Landing() {
   const { theme, toggleTheme } = useApp()
+  const [params] = useSearchParams()
+  const fromEmail = params.get('from') === EMAIL_REF
   const shot = theme === 'dark' ? '/preview-dark.png' : '/preview-light.png'
 
   return (
@@ -224,14 +243,27 @@ export default function Landing() {
       <section className="mx-auto max-w-[1120px] px-5 pt-16 md:pt-24 pb-10 text-center">
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
           <span className="inline-flex items-center gap-2 text-[12px] font-semibold px-3 py-1.5 rounded-full border border-[var(--line-2)] bg-[var(--surface)] text-[var(--ink-2)]">
-            <span className="w-[7px] h-[7px] rounded-full bg-[var(--st-good)]" /> For agencies running 10-50 client accounts
+            <span className="w-[7px] h-[7px] rounded-full bg-[var(--st-good)]" /> Built for agencies at 5&ndash;50 staff, running 10 or more client accounts
           </span>
-          <h1 className="mt-6 text-[38px] md:text-[56px] font-bold tracking-[-0.03em] leading-[1.05] max-w-[860px] mx-auto" style={{ textWrap: 'balance' } as any}>
-            Your reporting is fragmented.<br className="hidden sm:block" /> That&rsquo;s where the money leaks.
-          </h1>
-          <p className="mt-5 text-[16px] md:text-[18px] text-[var(--ink-2)] max-w-[660px] mx-auto leading-relaxed">
-            Most agencies do not lack data. They lack one place to see it. We build the internal reporting system that pulls your platforms, your CRM and your spreadsheets into a single view your team actually works from &mdash; carrying your brand, not a vendor&rsquo;s.
-          </p>
+          {fromEmail ? (
+            <>
+              <h1 className="mt-6 text-[36px] md:text-[52px] font-bold tracking-[-0.03em] leading-[1.06] max-w-[880px] mx-auto" style={{ textWrap: 'balance' } as any}>
+                One cost per lead, across every platform you run
+              </h1>
+              <p className="mt-5 text-[16px] md:text-[18px] text-[var(--ink-2)] max-w-[680px] mx-auto leading-relaxed">
+                This is the thing I emailed you about. Google Ads, Meta, Local Services and Google Business Profile stop disagreeing about who produced the lead, the client report builds off that same data, and margin stays visible to you and hidden from everyone else. Have a click around before we speak.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-6 text-[38px] md:text-[56px] font-bold tracking-[-0.03em] leading-[1.05] max-w-[860px] mx-auto" style={{ textWrap: 'balance' } as any}>
+                Your reporting is fragmented.<br className="hidden sm:block" /> That&rsquo;s where the money leaks.
+              </h1>
+              <p className="mt-5 text-[16px] md:text-[18px] text-[var(--ink-2)] max-w-[660px] mx-auto leading-relaxed">
+                Most agencies do not lack data. They lack one place to see it. We build the internal reporting system that pulls your platforms, your CRM and your spreadsheets into a single view your team actually works from &mdash; carrying your brand, not a vendor&rsquo;s.
+              </p>
+            </>
+          )}
           <div className="mt-8 flex flex-col items-center gap-3">
             <Link to={DEMO_ENTRY} className="inline-flex items-center gap-2 text-[16px] font-semibold px-7 py-3.5 rounded-[11px] bg-[var(--accent)] text-white hover:opacity-90 transition-opacity shadow-[var(--shadow-pop)]">
               <Play size={17} /> Open the live demo
@@ -281,9 +313,9 @@ export default function Landing() {
       <Rise>
         <section className="mx-auto max-w-[1120px] px-5 pb-6">
           <div className="max-w-[760px] mx-auto rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-8 md:p-10 text-center shadow-[var(--shadow)]">
-            <h2 className="text-[24px] md:text-[30px] font-bold tracking-[-0.02em]">Not another dashboard</h2>
-            <p className="mt-3 text-[15.5px] text-[var(--ink-2)] leading-relaxed max-w-[560px] mx-auto">
-              A dashboard is something else to go and look at. This is the system underneath it: your sources wired together, syncing on their own, shaped around how your agency is actually structured &mdash; so the reporting stops being a task and becomes something your team just has.
+            <h2 className="text-[24px] md:text-[30px] font-bold tracking-[-0.02em]">Yes, it&rsquo;s a dashboard. That&rsquo;s the easy part.</h2>
+            <p className="mt-3 text-[15.5px] text-[var(--ink-2)] leading-relaxed max-w-[600px] mx-auto">
+              Anyone can put your numbers on a screen. The work is underneath: your sources wired together and syncing on their own, one definition of cost per lead that every platform agrees to, and access shaped around how your agency is actually structured. That is what stops reporting being a task and makes it something your team simply has.
             </p>
           </div>
         </section>
