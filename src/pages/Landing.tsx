@@ -78,7 +78,7 @@ const PRICING: {
     // to make an honest entry tier feel like a trap.
     name: 'Starter',
     price: 'From $3,000',
-    unit: 'one-off',
+    unit: 'to build \u00b7 then $750 / mo support',
     fit: 'One overview, for the whole team',
     blurb: 'Every client you run, in a single view anyone in the agency can open. The plainest version of the thing: know where you stand, without logging into four platforms to find out.',
     points: [
@@ -141,7 +141,7 @@ const PRICING: {
 const ONGOING = [
   {
     name: 'Support',
-    price: 'From $400 / mo',
+    price: 'From $750 / mo',
     tag: 'First 3 months included',
     note: 'Platforms re-authorised, API changes absorbed, breakages fixed. Continues after the included months unless you cancel.',
   },

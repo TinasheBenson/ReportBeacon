@@ -69,7 +69,7 @@ Three packages, priced by what gets built rather than by agency headcount.
 Each is cumulative and each is a one-off the agency owns. No tier caps the
 client roster — an agency never chooses which of its clients to include.
 
-- **Starter — from $3,000, one-off.** One overview for the whole team. Every
+- **Starter — from $3,000 to build, then $750/month support.** One overview for the whole team. Every
   client account the agency manages, with up to 4 data sources connected — GA4,
   Google Ads, Meta and Google Business Profile. The same overview for everyone
   who opens it, exportable at any time. There are no roles or permissions at
@@ -88,7 +88,7 @@ client roster — an agency never chooses which of its clients to include.
   to Claude, ChatGPT or whichever assistant the team uses, so it can read the
   agency's numbers and carry out work against them.
 
-After it ships: support from $400/month, with the first three months included
+After it ships: support from $750/month, with the first three months included
 and continuing unless cancelled — platforms change their APIs and expire their
 tokens, so an unmaintained build goes stale. Optimisation from $1,200/month is
 genuinely optional and many agencies never take it.
