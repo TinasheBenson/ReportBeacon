@@ -77,7 +77,7 @@ const PRICING: {
     // features under the price reads as a paywall taunt, which is the one way
     // to make an honest entry tier feel like a trap.
     name: 'Starter',
-    price: 'From $3,500',
+    price: 'From $3,000',
     unit: 'one-off',
     fit: 'One overview, for the whole team',
     blurb: 'Every client you run, in a single view anyone in the agency can open. The plainest version of the thing: know where you stand, without logging into four platforms to find out.',
@@ -219,7 +219,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does it cost?',
-    a: 'Starter opens at $3,500, Core at $9,000, and the Full system is custom, typically from $18,000. Which one you need comes down to how many data sources get connected, whether the AI insight layer is built, and whether your clients get their own branded logins - not how big your agency is. You get a firm figure on the first call rather than a follow-up email a week later.',
+    a: 'Starter opens at $3,000, Core at $9,000, and the Full system is custom, typically from $18,000. Which one you need comes down to how many data sources get connected, whether the AI insight layer is built, and whether your clients get their own branded logins - not how big your agency is. You get a firm figure on the first call rather than a follow-up email a week later.',
   },
   {
     q: 'Is it a subscription?',
