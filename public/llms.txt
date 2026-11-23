@@ -69,7 +69,7 @@ Three packages, priced by what gets built rather than by agency headcount.
 Each is cumulative and each is a one-off the agency owns. No tier caps the
 client roster — an agency never chooses which of its clients to include.
 
-- **Starter — from $3,500, one-off.** One overview for the whole team. Every
+- **Starter — from $3,000, one-off.** One overview for the whole team. Every
   client account the agency manages, with up to 4 data sources connected — GA4,
   Google Ads, Meta and Google Business Profile. The same overview for everyone
   who opens it, exportable at any time. There are no roles or permissions at
